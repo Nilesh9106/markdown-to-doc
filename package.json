@@ -1,0 +1,57 @@
+{
+  "name": "markdown-to-doc",
+  "version": "1.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nilesh9106/markdown-to-doc.git"
+  },
+  "main": "./dist/index.js",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.14",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "markdown-to-doc": "./dist/cli/index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/Nilesh9106/markdown-to-doc/issues"
+  },
+  "description": "Convert Markdown to Docx",
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/Nilesh9106/markdown-to-doc#readme",
+  "keywords": [
+    "markdown",
+    "docx",
+    "convert",
+    "markdown-to-docx"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "bunx tsc -p tsconfig.build.json",
+    "test": "bun --bun test",
+    "typecheck": "bunx --bun tsc --noEmit",
+    "lint": "bunx --bun @biomejs/biome check .",
+    "lint:fix": "bunx --bun @biomejs/biome check --write .",
+    "format": "bunx --bun @biomejs/biome format --write .",
+    "clean": "rm -rf dist",
+    "ci:check": "bun run lint && bun run typecheck && bun run test && bun run build",
+    "prepublishOnly": "bun run ci:check",
+    "publish:npm": "npm publish --access public"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts"
+}
