@@ -1,4 +1,7 @@
-
+---
+description: Use bun  instead of node vite npm pnpm
+alwaysApply: false
+---
 ## Guidelines 
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.

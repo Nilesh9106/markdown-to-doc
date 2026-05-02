@@ -1,32 +1,44 @@
 {
   "name": "markdown-to-doc",
   "version": "1.0.3",
+  "description": "Convert Markdown into a styled DOCX buffer with a single function call.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/Nilesh9106/markdown-to-doc.git"
   },
-  "main": "./dist/index.js",
   "devDependencies": {
     "@biomejs/biome": "^2.4.14",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^22.15.3",
-    "typescript": "^5.8.3"
+    "jszip": "^3.10.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "image-size": "^2.0.2",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "default": "./dist/index.js"
     }
-  },
-  "bin": {
-    "markdown-to-doc": "./dist/cli/index.js"
   },
   "bugs": {
     "url": "https://github.com/Nilesh9106/markdown-to-doc/issues"
   },
-  "description": "Convert Markdown to Docx",
   "engines": {
+    "node": ">=18",
     "bun": ">=1.1.0"
   },
   "files": [
@@ -41,8 +53,9 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bunx tsc -p tsconfig.build.json",
-    "test": "bun --bun test",
+    "build": "bunx --bun tsup src/index.ts --format esm,cjs --dts --clean",
+    "example": "bun run examples/basic.ts",
+    "test": "bun test",
     "typecheck": "bunx --bun tsc --noEmit",
     "lint": "bunx --bun @biomejs/biome check .",
     "lint:fix": "bunx --bun @biomejs/biome check --write .",
@@ -52,6 +65,6 @@
     "prepublishOnly": "bun run ci:check",
     "publish:npm": "npm publish --access public"
   },
-  "type": "module",
-  "types": "./dist/index.d.ts"
+  "sideEffects": false,
+  "private": true
 }
