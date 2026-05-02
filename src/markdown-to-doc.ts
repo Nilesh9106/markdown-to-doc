@@ -82,7 +82,7 @@ export async function markdownToDocx(
   }
 
   const resolvedOptions = resolveOptions(options);
-  const root = parseMarkdown(markdown);
+  const root = await parseMarkdown(markdown);
   const context = createContext(resolvedOptions);
   const document = new Document({
     numbering: {

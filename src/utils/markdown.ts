@@ -1,12 +1,15 @@
 import type { Content, PhrasingContent, Root } from "mdast";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
 import { unified } from "unified";
 
 /**
  * Parses markdown into an MDAST tree with GFM support enabled.
  */
-export function parseMarkdown(markdown: string): Root {
+export async function parseMarkdown(markdown: string): Promise<Root> {
+  const [{ default: remarkParse }, { default: remarkGfm }] = await Promise.all([
+    import("remark-parse"),
+    import("remark-gfm"),
+  ]);
+
   return unified().use(remarkParse).use(remarkGfm).parse(markdown) as Root;
 }
 

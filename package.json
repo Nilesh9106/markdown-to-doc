@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-doc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert Markdown into a styled DOCX buffer with a single function call.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -65,6 +65,5 @@
     "prepublishOnly": "bun run ci:check",
     "publish:npm": "npm publish --access public"
   },
-  "sideEffects": false,
-  "private": true
+  "sideEffects": false
 }
