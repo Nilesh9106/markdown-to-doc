@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-doc",
-  "version": "1.0.3",
+  "version": "1.0.0",
   "description": "Convert Markdown into a styled DOCX buffer with a single function call.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -54,7 +54,7 @@
   "license": "MIT",
   "scripts": {
     "build": "bunx --bun tsup src/index.ts --format esm,cjs --dts --clean",
-    "example": "bun run examples/basic.ts",
+    "example": "bun run examples/markdown-to-docx.ts",
     "test": "bun test",
     "typecheck": "bunx --bun tsc --noEmit",
     "lint": "bunx --bun @biomejs/biome check .",
