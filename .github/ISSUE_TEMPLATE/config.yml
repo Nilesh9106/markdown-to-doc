@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/Nilesh9106/markdown-to-doc#readme
+    about: Read the package documentation and usage examples.
+  - name: Security policy
+    url: https://github.com/Nilesh9106/markdown-to-doc/blob/main/SECURITY.md
+    about: Report security issues privately.

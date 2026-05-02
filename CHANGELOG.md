@@ -4,6 +4,20 @@ All notable changes to `markdown-to-doc` should be documented in this file.
 
 The format is based on Keep a Changelog and this project uses semantic versioning.
 
+### Added
+
+- Added standard open source project files, including `LICENSE`,
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
+- Added GitHub collaboration scaffolding with issue templates, a pull request
+  template, CODEOWNERS, and Dependabot configuration.
+
+### Changed
+
+- Updated CI workflow metadata for safer concurrency and explicit repository
+  permissions.
+- Updated the publish workflow to publish with npm provenance.
+- Updated the README with links to project governance and contribution docs.
+
 ## [1.0.1] - 2026-05-02
 
 ### Fixed

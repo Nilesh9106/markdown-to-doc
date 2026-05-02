@@ -36,4 +36,4 @@ jobs:
         run: bun run ci:check
 
       - name: Publish package
-        run: npm publish --access public
+        run: npm publish --access public --provenance

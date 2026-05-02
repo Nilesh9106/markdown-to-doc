@@ -1,8 +1,31 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/node-18%2B-2F5D8C?style=flat-square" alt="Node 18+" />
-  <img src="https://img.shields.io/badge/output-DOCX-4C78B5?style=flat-square" alt="DOCX output" />
-  <img src="https://img.shields.io/badge/types-TypeScript-C9D7E3?style=flat-square" alt="TypeScript types" />
-  <img src="https://img.shields.io/badge/markdown-CommonMark%20%2B%20GFM-6B7280?style=flat-square" alt="Markdown support" />
+  <a href="https://www.npmjs.com/package/markdown-to-doc">
+    <img src="https://img.shields.io/npm/v/markdown-to-doc?style=flat-square" alt="npm version" />
+  </a>
+  <a href="https://www.npmjs.com/package/markdown-to-doc">
+    <img src="https://img.shields.io/npm/dm/markdown-to-doc?style=flat-square" alt="npm downloads" />
+  </a>
+  <a href="https://github.com/Nilesh9106/markdown-to-doc/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Nilesh9106/markdown-to-doc/ci.yml?branch=main&style=flat-square&label=ci" alt="CI status" />
+  </a>
+  <a href="https://github.com/Nilesh9106/markdown-to-doc/stargazers">
+    <img src="https://img.shields.io/github/stars/Nilesh9106/markdown-to-doc?style=flat-square" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/Nilesh9106/markdown-to-doc/commits/main">
+    <img src="https://img.shields.io/github/last-commit/Nilesh9106/markdown-to-doc?style=flat-square" alt="Last commit" />
+  </a>
+  <a href="https://github.com/Nilesh9106/markdown-to-doc/graphs/commit-activity">
+    <img src="https://img.shields.io/github/commit-activity/m/Nilesh9106/markdown-to-doc?style=flat-square" alt="Monthly commit activity" />
+  </a>
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/npm/l/markdown-to-doc?style=flat-square" alt="License" />
+  </a>
+  <a href="./README.md#installation">
+    <img src="https://img.shields.io/badge/node-18%2B-2F5D8C?style=flat-square" alt="Node 18+" />
+  </a>
+  <a href="./README.md#installation">
+    <img src="https://img.shields.io/badge/bun-1.1%2B-F4A261?style=flat-square" alt="Bun 1.1+" />
+  </a>
 </p>
 
 # markdown-to-doc
@@ -38,6 +61,7 @@ It is built for application-driven document generation:
 - [Example Script](#example-script)
 - [Errors](#errors)
 - [Exports](#exports)
+- [Project](#project)
 
 ## Installation
 
@@ -334,3 +358,14 @@ The package exports:
 - `markdownToDocx`
 - `MarkdownToDocError`
 - public TypeScript option and helper types
+
+## Project
+
+This repository includes the standard documents for public contributions and
+maintenance:
+
+- [Changelog](./CHANGELOG.md)
+- [Contributing guide](./CONTRIBUTING.md)
+- [Code of conduct](./CODE_OF_CONDUCT.md)
+- [Security policy](./SECURITY.md)
+- [License](./LICENSE)
