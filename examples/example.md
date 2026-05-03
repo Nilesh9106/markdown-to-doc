@@ -1,7 +1,5 @@
 # Product Requirements Document
 
-Stakeholder: Synchrony
-
 ## **Goals**
 
 ### **Business Goals**
@@ -214,6 +212,55 @@ Stakeholder: Synchrony
 | 1 | OpenAPI generation, NL validation, Postman export, net worth & categories | 2 sprints |
 | 2 | Business context, recurring expenses, schedules/filters, reporting | 1–2 sprints |
 | 3 | Orchestration maturity, multi-route complexity, optional tools | 1 sprint |
+
+### **Sample implementation snippets**
+
+```ts
+type ValidationSummary = {
+  assets: number;
+  liabilities: number;
+};
+
+export function calculateNetWorth(summary: ValidationSummary) {
+  return summary.assets - summary.liabilities;
+}
+```
+### JSON example
+
+```json
+{
+  "scenario": "net-worth-reconciliation",
+  "tolerance": 0,
+  "enabled": true
+}
+```
+### Bash example
+
+```bash
+curl -X POST https://api.example.com/validate \
+  -H "content-type: application/json" \
+  -d '{"scenario":"net-worth-reconciliation"}'
+```
+
+### Traceability matrix example
+
+```text
+source meeting/document claim
+        ↓
+Helix memory artifact
+        ↓
+score + reason
+```
+
+Example:
+
+```text
+"Prequalification is not final approval"
+        ↓
+REQ-004 · Prequalification-to-Application Continuity
+        ↓
+matched, grounded, useful
+```
 
 ### **Illustrative figures**
 

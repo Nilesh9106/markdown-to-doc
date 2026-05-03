@@ -102,6 +102,29 @@ describe("CLI", () => {
     expect(documentXml).toContain("Streamed Input");
   });
 
+  it("renders syntax-highlighted code blocks through the CLI", async () => {
+    const directory = await createTempDirectory();
+    const inputPath = join(directory, "snippet.md");
+
+    await Bun.write(
+      inputPath,
+      ["# CLI code sample", "", "```json", '{ "status": "ok", "count": 2 }', "```"].join("\n"),
+    );
+
+    const result = await runCli([inputPath]);
+    const outputPath = join(directory, "snippet.docx");
+    const documentXml = await readDocxText(outputPath, "word/document.xml");
+
+    expect(result.code).toBe(0);
+    expect(documentXml).toContain(">JSON<");
+    expect(documentXml).toContain("&quot;status&quot;");
+    expect(documentXml).toContain("&quot;ok&quot;");
+    expect(documentXml).toContain(">2<");
+    expect(documentXml).toContain('w:color w:val="0369A1"');
+    expect(documentXml).toContain('w:color w:val="0F766E"');
+    expect(documentXml).toContain('w:color w:val="B45309"');
+  });
+
   it("applies JSON config values during conversion", async () => {
     const directory = await createTempDirectory();
     const inputPath = join(directory, "configurable.md");
