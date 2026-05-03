@@ -4,12 +4,16 @@ All notable changes to `markdown-to-doc` should be documented in this file.
 
 The format is based on Keep a Changelog and this project uses semantic versioning.
 
+## [Unreleased]
+
 ### Added
 
 - Added standard open source project files, including `LICENSE`,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
 - Added GitHub collaboration scaffolding with issue templates, a pull request
   template, CODEOWNERS, and Dependabot configuration.
+- Added CLI support through the `markdown-to-doc` binary for file input, stdin, JSON config loading, and explicit help/version commands.
+- Added end-to-end CLI tests covering success paths and argument/config validation.
 
 ### Changed
 
@@ -17,6 +21,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
   permissions.
 - Updated the publish workflow to publish with npm provenance.
 - Updated the README with links to project governance and contribution docs.
+- Updated package build and publish metadata to ship the CLI binary.
+- Updated the README with CLI installation, usage, config examples, and behavior notes.
 
 ## [1.0.1] - 2026-05-02
 

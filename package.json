@@ -6,6 +6,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "markdown-to-doc": "./dist/cli/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Nilesh9106/markdown-to-doc.git"
@@ -53,7 +56,7 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bunx --bun tsup src/index.ts --format esm,cjs --dts --clean",
+    "build": "bunx --bun tsup src/index.ts --format esm,cjs --dts --clean && bunx --bun tsup src/cli/index.ts --format esm --out-dir dist/cli",
     "example": "bun run examples/markdown-to-docx.ts",
     "test": "bun test",
     "typecheck": "bunx --bun tsc --noEmit",
