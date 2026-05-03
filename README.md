@@ -43,6 +43,7 @@ It is built for application-driven document generation:
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [CLI](#cli)
 - [What The Package Does](#what-the-package-does)
 - [API](#api)
 - [Configuration](#configuration)
@@ -69,6 +70,12 @@ It is built for application-driven document generation:
 npm install markdown-to-doc
 ```
 
+For CLI usage:
+
+```bash
+npm install -g markdown-to-doc
+```
+
 ## Quick Start
 
 ```ts
@@ -92,6 +99,70 @@ const buffer = await markdownToDocx(markdown);
 
 await writeFile("output.docx", buffer);
 ```
+
+## CLI
+
+The package also ships with a `markdown-to-doc` CLI for file-based conversion.
+
+### Basic Usage
+
+Convert a markdown file and write `output.docx` next to it:
+
+```bash
+markdown-to-doc ./output.md
+```
+
+Choose the output path explicitly:
+
+```bash
+markdown-to-doc ./report.md --output ./dist/report.docx
+```
+
+Read markdown from stdin:
+
+```bash
+cat ./report.md | markdown-to-doc --stdin --output ./report.docx
+```
+
+Load document options from JSON:
+
+```bash
+markdown-to-doc ./report.md --config ./doc-config.json
+```
+
+### CLI Config
+
+`--config` accepts a JSON object shaped like `MarkdownToDocxOptions`.
+
+Example:
+
+```json
+{
+  "cover": {
+    "show": true,
+    "title": "Quarterly Report"
+  },
+  "toc": {
+    "show": true
+  },
+  "footer": {
+    "show": true,
+    "right": {
+      "type": "pageNumber",
+      "format": "currentOfTotal"
+    }
+  }
+}
+```
+
+CLI config supports JSON-serializable options only. Function-based options such as `assets.resolveImage` remain library-only.
+
+### CLI Notes
+
+- File input defaults the output path to the same basename with a `.docx` extension.
+- `--stdin` requires `--output`.
+- Relative markdown and asset paths resolve from the input markdown file when one is provided.
+- Run `markdown-to-doc --help` to see the full usage summary.
 
 ## What The Package Does
 
