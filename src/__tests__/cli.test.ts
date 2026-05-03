@@ -120,9 +120,9 @@ describe("CLI", () => {
     expect(documentXml).toContain("&quot;status&quot;");
     expect(documentXml).toContain("&quot;ok&quot;");
     expect(documentXml).toContain(">2<");
-    expect(documentXml).toContain('w:color w:val="0369A1"');
-    expect(documentXml).toContain('w:color w:val="0F766E"');
-    expect(documentXml).toContain('w:color w:val="B45309"');
+    expect(documentXml).toContain('w:color w:val="6F42C1"');
+    expect(documentXml).toContain('w:color w:val="032F62"');
+    expect(documentXml).toContain('w:color w:val="005CC5"');
   });
 
   it("applies JSON config values during conversion", async () => {

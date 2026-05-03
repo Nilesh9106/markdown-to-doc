@@ -911,6 +911,8 @@ function renderCodeBlock(
           text: token.text,
           font: context.options.theme.fonts.mono,
           color: token.color ?? hex(context.options.theme.colors.text),
+          bold: token.bold,
+          italics: token.italics,
           size: toHalfPoints(context.options.theme.fontSize.code),
         }),
       );

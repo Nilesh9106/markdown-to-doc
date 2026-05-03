@@ -101,10 +101,10 @@ describe("markdownToDocx", () => {
     expect(documentXml).toContain("&quot;ready&quot;");
     expect(documentXml).toContain("// keep me");
     expect(documentXml).toContain('w:shd w:fill="EEF4F8"');
-    expect(documentXml).toContain('w:color w:val="1D4ED8"');
-    expect(documentXml).toContain('w:color w:val="B45309"');
-    expect(documentXml).toContain('w:color w:val="0F766E"');
-    expect(documentXml).toContain('w:color w:val="6B7280"');
+    expect(documentXml).toContain('w:color w:val="D73A49"');
+    expect(documentXml).toContain('w:color w:val="005CC5"');
+    expect(documentXml).toContain('w:color w:val="032F62"');
+    expect(documentXml).toContain('w:color w:val="6A737D"');
   });
 
   it("falls back to plain code formatting for unsupported languages", async () => {
