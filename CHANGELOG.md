@@ -14,6 +14,7 @@ The format is based on Keep a Changelog and this project uses semantic versionin
   template, CODEOWNERS, and Dependabot configuration.
 - Added CLI support through the `markdown-to-doc` binary for file input, stdin, JSON config loading, and explicit help/version commands.
 - Added end-to-end CLI tests covering success paths and argument/config validation.
+- Added syntax-highlighted fenced code blocks in generated DOCX output using `lowlight`, with plain-text fallback for unsupported or unknown languages.
 
 ### Changed
 

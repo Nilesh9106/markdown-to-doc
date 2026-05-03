@@ -85,6 +85,44 @@ describe("markdownToDocx", () => {
     expect(documentXml).not.toContain('w:w="100%"');
   });
 
+  it("renders fenced code blocks with syntax-highlighted runs", async () => {
+    const buffer = await markdownToDocx(
+      ["```ts", "const total = 42;", 'console.log("ready"); // keep me', "```"].join("\n"),
+    );
+
+    const zip = await openDocx(buffer);
+    const documentXml = await readZipText(zip, "word/document.xml");
+
+    expect(documentXml).toContain(">TS<");
+    expect(documentXml).toContain(">const<");
+    expect(documentXml).toContain(">42<");
+    expect(documentXml).toContain(">console<");
+    expect(documentXml).toContain(">log<");
+    expect(documentXml).toContain("&quot;ready&quot;");
+    expect(documentXml).toContain("// keep me");
+    expect(documentXml).toContain('w:shd w:fill="EEF4F8"');
+    expect(documentXml).toContain('w:color w:val="D73A49"');
+    expect(documentXml).toContain('w:color w:val="005CC5"');
+    expect(documentXml).toContain('w:color w:val="032F62"');
+    expect(documentXml).toContain('w:color w:val="6A737D"');
+  });
+
+  it("falls back to plain code formatting for unsupported languages", async () => {
+    const buffer = await markdownToDocx(
+      ["```brainflux", "spark -> pulse -> sink", "```"].join("\n"),
+    );
+
+    const zip = await openDocx(buffer);
+    const documentXml = await readZipText(zip, "word/document.xml");
+
+    expect(documentXml).toContain(">BRAINFLUX<");
+    expect(documentXml).toContain("spark -&gt; pulse -&gt; sink");
+    expect(documentXml).toContain('w:shd w:fill="EEF4F8"');
+    expect(documentXml).not.toContain('w:color w:val="1D4ED8"');
+    expect(documentXml).not.toContain('w:color w:val="0F766E"');
+    expect(documentXml).not.toContain('w:color w:val="B45309"');
+  });
+
   it("uses the image resolver for markdown images", async () => {
     let resolverCalls = 0;
 

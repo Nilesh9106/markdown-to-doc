@@ -49,6 +49,7 @@ import type {
   ResolvedMarkdownToDocxOptions,
   TextStyle,
 } from "./types/markdown-to-doc.types.js";
+import { tokenizeCodeBlock } from "./utils/code-highlighting.js";
 import { resolveOptions } from "./utils/default-options.js";
 import { resolveConfiguredImage, resolveMarkdownImage } from "./utils/image.js";
 import { extractText, parseMarkdown } from "./utils/markdown.js";
@@ -876,7 +877,51 @@ function renderCodeBlock(
   language: string | null | undefined,
   context: RenderContext,
 ): Paragraph {
-  const prefix = language ? `${language}\n` : "";
+  const children: ParagraphChild[] = [];
+  const lines = tokenizeCodeBlock(value, language);
+
+  if (language) {
+    children.push(
+      new TextRun({
+        text: language.toUpperCase(),
+        bold: true,
+        color: "5B6574",
+        font: context.options.theme.fonts.mono,
+        size: toHalfPoints(context.options.theme.fontSize.code),
+      }),
+    );
+
+    if (lines.length > 0) {
+      children.push(new TextRun({ break: 1 }));
+    }
+  }
+
+  for (const [lineIndex, line] of lines.entries()) {
+    if (line.length === 0) {
+      if (lineIndex < lines.length - 1) {
+        children.push(new TextRun({ break: 1 }));
+      }
+
+      continue;
+    }
+
+    for (const token of line) {
+      children.push(
+        new TextRun({
+          text: token.text,
+          font: context.options.theme.fonts.mono,
+          color: token.color ?? hex(context.options.theme.colors.text),
+          bold: token.bold,
+          italics: token.italics,
+          size: toHalfPoints(context.options.theme.fontSize.code),
+        }),
+      );
+    }
+
+    if (lineIndex < lines.length - 1) {
+      children.push(new TextRun({ break: 1 }));
+    }
+  }
 
   return new Paragraph({
     spacing: {
@@ -892,14 +937,7 @@ function renderCodeBlock(
         size: 6,
       },
     },
-    children: [
-      new TextRun({
-        text: `${prefix}${value}`,
-        font: context.options.theme.fonts.mono,
-        color: hex(context.options.theme.colors.text),
-        size: toHalfPoints(context.options.theme.fontSize.code),
-      }),
-    ],
+    children,
   });
 }
 
