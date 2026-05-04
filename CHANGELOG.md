@@ -4,7 +4,7 @@ All notable changes to `markdown-to-doc` should be documented in this file.
 
 The format is based on Keep a Changelog and this project uses semantic versioning.
 
-## [Unreleased]
+## [1.1.0] - 2026-05-04
 
 ### Added
 
