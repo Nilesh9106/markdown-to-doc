@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-doc",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Convert Markdown into a styled DOCX buffer with a single function call.",
   "type": "module",
   "main": "./dist/index.cjs",

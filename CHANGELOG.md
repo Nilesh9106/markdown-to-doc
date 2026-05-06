@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-06
+
 ### Added
 
 - Added SVG image support for cover logos, cover images, header/footer image slots, and markdown images, including the fallback data required by `docx`.
