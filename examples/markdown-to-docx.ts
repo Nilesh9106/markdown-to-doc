@@ -15,6 +15,7 @@ const markdown = await readFile(path.join(__dirname, "example.md"), "utf8");
 
 const buffer = await markdownToDocx(markdown, {
   assets: {
+    baseDir: __dirname,
     resolveImage: async ({ src }) => {
       if (src.startsWith("http://") || src.startsWith("https://")) {
         return {
@@ -46,6 +47,8 @@ const buffer = await markdownToDocx(markdown, {
     subtitle: "Generated from the public package API",
     projectName: "markdown-to-doc",
     date: "May 2026",
+    logo: { kind: "path", value: "./logo.svg" },
+    logoPosition: "top-right",
     image: { kind: "buffer", value: tinyPng },
     imageWidth: 440,
     imageHeight: 180,

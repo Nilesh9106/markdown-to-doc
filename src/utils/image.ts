@@ -7,12 +7,22 @@ import type { AssetOptions, ImageSource, ResolvedImage } from "../types/markdown
 
 const DATA_URL_PATTERN = /^data:(?<mime>image\/[a-zA-Z0-9.+-]+);base64,(?<data>.+)$/;
 const REMOTE_URL_PATTERN = /^https?:\/\//i;
+const TRANSPARENT_PNG_FALLBACK = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9l8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+type SupportedImageType = "jpg" | "png" | "gif" | "bmp" | "svg";
 
 export interface SizedImage {
   data: Buffer;
   width: number;
   height: number;
-  type: "jpg" | "png" | "gif" | "bmp";
+  type: SupportedImageType;
+  fallback?: {
+    data: Buffer;
+    type: "png";
+  };
 }
 
 /**
@@ -33,6 +43,17 @@ export async function resolveConfiguredImage(
   return withMeasuredSize({
     data: await readFile(path.resolve(baseDir, source.value)),
   });
+}
+
+export async function tryResolveConfiguredImage(
+  source: ImageSource,
+  baseDir: string,
+): Promise<SizedImage | null> {
+  try {
+    return await resolveConfiguredImage(source, baseDir);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -90,11 +111,35 @@ export async function resolveMarkdownImage(
   });
 }
 
+export async function tryResolveMarkdownImage(
+  input: { src: string; alt?: string; title?: string },
+  assets: Required<AssetOptions>,
+): Promise<SizedImage | null> {
+  try {
+    return await resolveMarkdownImage(input, assets);
+  } catch {
+    return null;
+  }
+}
+
 function withMeasuredSize(image: ResolvedImage): SizedImage {
   const size = imageSize(image.data);
 
   if (!size.width || !size.height || !size.type) {
     throw new MarkdownToDocError("Unable to determine image dimensions.");
+  }
+
+  if (size.type === "svg") {
+    return {
+      data: image.data,
+      width: image.width ?? size.width,
+      height: image.height ?? size.height,
+      type: size.type,
+      fallback: {
+        data: TRANSPARENT_PNG_FALLBACK,
+        type: "png",
+      },
+    };
   }
 
   if (!["jpg", "png", "gif", "bmp"].includes(size.type)) {
