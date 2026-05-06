@@ -412,7 +412,7 @@ The repository includes a runnable example:
 bun run example
 ```
 
-That script reads `examples/example.md` and writes `examples/test-output.docx`.
+That script reads `examples/example.md`, embeds `examples/logo.svg`, skips the intentionally missing image entry, and writes `examples/test-output.docx`.
 
 ## Errors
 

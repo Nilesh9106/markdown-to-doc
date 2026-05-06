@@ -6,6 +6,9 @@ const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9l8AAAAASUVORK5CYII=",
   "base64",
 );
+const tinySvg = Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="#2563eb"/></svg>',
+);
 
 async function openDocx(buffer: Buffer): Promise<JSZip> {
   return JSZip.loadAsync(buffer);
@@ -140,6 +143,45 @@ describe("markdownToDocx", () => {
 
     expect(resolverCalls).toBe(1);
     expect(mediaEntries.length).toBeGreaterThan(0);
+  });
+
+  it("embeds svg images with a docx fallback", async () => {
+    const buffer = await markdownToDocx("# Title", {
+      cover: {
+        show: true,
+        title: "SVG Cover",
+        logo: { kind: "buffer", value: tinySvg },
+      },
+    });
+
+    const zip = await openDocx(buffer);
+    const mediaEntries = Object.keys(zip.files).filter((entry) => entry.startsWith("word/media/"));
+
+    expect(mediaEntries.some((entry) => entry.endsWith(".svg"))).toBe(true);
+    expect(mediaEntries.some((entry) => entry.endsWith(".png"))).toBe(true);
+  });
+
+  it("skips invalid images instead of throwing", async () => {
+    const invalidImage = Buffer.from("not-an-image");
+    const buffer = await markdownToDocx("Before ![Broken](ignored) After", {
+      cover: {
+        show: true,
+        title: "Cover Title",
+        logo: { kind: "buffer", value: invalidImage },
+      },
+      assets: {
+        resolveImage: async () => invalidImage,
+      },
+    });
+
+    const zip = await openDocx(buffer);
+    const documentXml = await readZipText(zip, "word/document.xml");
+    const mediaEntries = Object.keys(zip.files).filter((entry) => entry.startsWith("word/media/"));
+
+    expect(documentXml).toContain("Cover Title");
+    expect(documentXml).toContain("Before ");
+    expect(documentXml).toContain(" After");
+    expect(mediaEntries).toHaveLength(0);
   });
 
   it("renders centered cover content and embeds a cover image", async () => {

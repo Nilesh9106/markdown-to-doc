@@ -51,7 +51,11 @@ import type {
 } from "./types/markdown-to-doc.types.js";
 import { tokenizeCodeBlock } from "./utils/code-highlighting.js";
 import { resolveOptions } from "./utils/default-options.js";
-import { resolveConfiguredImage, resolveMarkdownImage } from "./utils/image.js";
+import {
+  type SizedImage,
+  tryResolveConfiguredImage,
+  tryResolveMarkdownImage,
+} from "./utils/image.js";
 import { extractText, parseMarkdown } from "./utils/markdown.js";
 
 type SectionChild = Paragraph | Table | TableOfContents;
@@ -198,29 +202,26 @@ async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
   const coverAlignment = cover.alignment === "left" ? AlignmentType.LEFT : AlignmentType.CENTER;
 
   if (cover.logo) {
-    const image = await resolveConfiguredImage(cover.logo, assets.baseDir);
-    const alignment =
-      cover.logoPosition === "top-center"
-        ? AlignmentType.CENTER
-        : cover.logoPosition === "top-right"
-          ? AlignmentType.RIGHT
-          : AlignmentType.LEFT;
+    const image = await tryResolveConfiguredImage(cover.logo, assets.baseDir);
 
-    children.push(
-      new Paragraph({
-        alignment,
-        spacing: {
-          after: toTwips(24),
-        },
-        children: [
-          new ImageRun({
-            type: image.type,
-            data: image.data,
-            transformation: scaleToFit(image.width, image.height, 180),
-          }),
-        ],
-      }),
-    );
+    if (image) {
+      const alignment =
+        cover.logoPosition === "top-center"
+          ? AlignmentType.CENTER
+          : cover.logoPosition === "top-right"
+            ? AlignmentType.RIGHT
+            : AlignmentType.LEFT;
+
+      children.push(
+        new Paragraph({
+          alignment,
+          spacing: {
+            after: toTwips(24),
+          },
+          children: [createImageRun(image, scaleToFit(image.width, image.height, 180))],
+        }),
+      );
+    }
   }
 
   children.push(
@@ -232,7 +233,11 @@ async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
   );
 
   if (cover.image && cover.imagePosition === "aboveTitle") {
-    children.push(await createCoverImageParagraph(context));
+    const coverImageParagraph = await createCoverImageParagraph(context);
+
+    if (coverImageParagraph) {
+      children.push(coverImageParagraph);
+    }
   }
 
   if (cover.title) {
@@ -278,7 +283,11 @@ async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
   }
 
   if (cover.image && cover.imagePosition === "belowTitle") {
-    children.push(await createCoverImageParagraph(context));
+    const coverImageParagraph = await createCoverImageParagraph(context);
+
+    if (coverImageParagraph) {
+      children.push(coverImageParagraph);
+    }
   }
 
   if (cover.projectName) {
@@ -292,14 +301,19 @@ async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
   return children;
 }
 
-async function createCoverImageParagraph(context: RenderContext): Promise<Paragraph> {
+async function createCoverImageParagraph(context: RenderContext): Promise<Paragraph | null> {
   const { cover, assets } = context.options;
 
   if (!cover.image) {
-    return new Paragraph({});
+    return null;
   }
 
-  const image = await resolveConfiguredImage(cover.image, assets.baseDir);
+  const image = await tryResolveConfiguredImage(cover.image, assets.baseDir);
+
+  if (!image) {
+    return null;
+  }
+
   const maxWidth = Math.min(context.contentWidthPx, 420);
 
   return new Paragraph({
@@ -308,17 +322,15 @@ async function createCoverImageParagraph(context: RenderContext): Promise<Paragr
       after: toTwips(18),
     },
     children: [
-      new ImageRun({
-        type: image.type,
-        data: image.data,
-        transformation:
-          cover.imageWidth && cover.imageHeight
-            ? {
-                width: cover.imageWidth,
-                height: cover.imageHeight,
-              }
-            : scaleToFit(image.width, image.height, maxWidth),
-      }),
+      createImageRun(
+        image,
+        cover.imageWidth && cover.imageHeight
+          ? {
+              width: cover.imageWidth,
+              height: cover.imageHeight,
+            }
+          : scaleToFit(image.width, image.height, maxWidth),
+      ),
     ],
   });
 }
@@ -425,7 +437,7 @@ async function renderHeaderFooterSlot(
       : undefined;
 
   if (slot.type === "image") {
-    const image = await resolveConfiguredImage(slot.source, context.options.assets.baseDir);
+    const image = await tryResolveConfiguredImage(slot.source, context.options.assets.baseDir);
 
     return new Paragraph({
       alignment,
@@ -433,16 +445,16 @@ async function renderHeaderFooterSlot(
         before: toTwips(1),
         after: toTwips(1),
       },
-      children: [
-        new ImageRun({
-          type: image.type,
-          data: image.data,
-          transformation:
-            slot.width && slot.height
-              ? { width: slot.width, height: slot.height }
-              : scaleToFit(image.width, image.height, slot.width ?? 120),
-        }),
-      ],
+      children: image
+        ? [
+            createImageRun(
+              image,
+              slot.width && slot.height
+                ? { width: slot.width, height: slot.height }
+                : scaleToFit(image.width, image.height, slot.width ?? 120),
+            ),
+          ]
+        : [],
     });
   }
 
@@ -697,7 +709,11 @@ async function renderInline(
     }
 
     if (node.type === "image") {
-      children.push(await renderImage(node, context));
+      const image = await renderImage(node, context);
+
+      if (image) {
+        children.push(image);
+      }
     }
   }
 
@@ -735,8 +751,8 @@ async function renderLink(
   });
 }
 
-async function renderImage(node: Image, context: RenderContext): Promise<ImageRun> {
-  const image = await resolveMarkdownImage(
+async function renderImage(node: Image, context: RenderContext): Promise<ImageRun | null> {
+  const image = await tryResolveMarkdownImage(
     {
       src: node.url,
       alt: node.alt || undefined,
@@ -745,17 +761,46 @@ async function renderImage(node: Image, context: RenderContext): Promise<ImageRu
     context.options.assets,
   );
 
+  if (!image) {
+    return null;
+  }
+
   const maxWidth = Math.min(context.contentWidthPx, 520);
+
+  return createImageRun(image, scaleToFit(image.width, image.height, maxWidth), {
+    name: node.alt || "markdown-image",
+    description: node.alt || "",
+    title: node.title || node.alt || "",
+  });
+}
+
+function createImageRun(
+  image: SizedImage,
+  transformation: { width: number; height: number },
+  altText?: { name: string; description: string; title: string },
+): ImageRun {
+  if (image.type === "svg") {
+    if (!image.fallback) {
+      throw new MarkdownToDocError("SVG image fallback is required.");
+    }
+
+    return new ImageRun({
+      type: image.type,
+      data: image.data,
+      fallback: {
+        type: image.fallback.type,
+        data: image.fallback.data,
+      },
+      transformation,
+      altText,
+    });
+  }
 
   return new ImageRun({
     type: image.type,
     data: image.data,
-    transformation: scaleToFit(image.width, image.height, maxWidth),
-    altText: {
-      name: node.alt || "markdown-image",
-      description: node.alt || "",
-      title: node.title || node.alt || "",
-    },
+    transformation,
+    altText,
   });
 }
 

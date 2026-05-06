@@ -4,6 +4,18 @@ All notable changes to `markdown-to-doc` should be documented in this file.
 
 The format is based on Keep a Changelog and this project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Added SVG image support for cover logos, cover images, header/footer image slots, and markdown images, including the fallback data required by `docx`.
+- Added regression tests covering SVG embedding and invalid image skipping.
+- Added an example SVG logo asset and updated the example script/markdown to exercise SVG rendering and skipped missing images.
+
+### Changed
+
+- Updated image rendering to skip assets with unsupported or mismatched image data instead of failing document generation.
+
 ## [1.1.0] - 2026-05-04
 
 ### Added

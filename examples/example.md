@@ -268,6 +268,10 @@ matched, grounded, useful
 
 ![Small badge-style image](https://picsum.photos/seed/docx-badge/120/40)
 
+![Local SVG logo](./logo.svg)
+
+![This missing image should be skipped](./missing-image.png)
+
 ## Problem statement
 
 Current payment-side API validation relies heavily on manual scripts, browser network-tab inspection, and developer familiarity with specific endpoints. This approach is difficult to scale for complex financial checks such as net worth reconciliation, category aggregation, recurring expense validation, and multi-source consistency checks. The meeting "API Testing Strategy Test" confirmed that current PM-agent-driven approaches are not sufficiently deterministic for data- and calculation-heavy workflows, while OpenAPI-based approaches remain underused due to tooling and documentation issues.
