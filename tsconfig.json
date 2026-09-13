@@ -10,11 +10,10 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
-    "types": ["node"],
+    "types": ["bun"],
     "rootDir": "./src",
     "outDir": "./dist"
   },
