@@ -17,13 +17,13 @@
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "latest",
     "@types/mdast": "^4.0.4",
-    "jszip": "^3.10.1",
     "tsup": "^8.5.0",
     "typescript": "^7.0.2"
   },
   "dependencies": {
     "docx": "^9.5.1",
     "image-size": "^2.0.2",
+    "jszip": "^3.10.1",
     "lowlight": "^3.3.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

@@ -61,7 +61,7 @@ describe("markdownToDocx", () => {
         footer: {
           show: true,
           left: { type: "pageNumber", format: "currentOfTotal" },
-          right: { type: "text", value: "heizen.work" },
+          right: { type: "text", value: "markdown-to-doc" },
           borderTop: true,
         },
       },
@@ -79,7 +79,7 @@ describe("markdownToDocx", () => {
     expect(documentXml).toContain("Analyst");
     expect(headerXml).toContain("Confidential");
     expect(headerXml).toContain("Sample PRD");
-    expect(footerXml).toContain("heizen.work");
+    expect(footerXml).toContain("markdown-to-doc");
     expect(footerXml).toContain("PAGE");
     expect(footerXml).toContain("NUMPAGES");
     expect(relationshipsXml).toContain("https://example.com");
@@ -204,5 +204,52 @@ describe("markdownToDocx", () => {
     expect(documentXml).toContain("Cover Subtitle");
     expect(documentXml).toContain('<w:jc w:val="center"/>');
     expect(mediaEntries.length).toBeGreaterThan(0);
+  });
+  it("emits self-contained OOXML style defaults", async () => {
+    const buffer = await markdownToDocx(
+      ["# Title", "", "- one", "- two", "", "`code`"].join("\n"),
+      {
+        theme: { fonts: { body: "PT Serif", heading: "PT Serif", mono: "Consolas" } },
+      },
+    );
+
+    const zip = await openDocx(buffer);
+    const stylesXml = await readZipText(zip, "word/styles.xml");
+    const documentXml = await readZipText(zip, "word/document.xml");
+    const fontTableXml = await readZipText(zip, "word/fontTable.xml");
+
+    expect(stylesXml).toContain('<w:style w:type="paragraph" w:default="1" w:styleId="Normal">');
+    expect(stylesXml).toContain(
+      '<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">',
+    );
+    expect(stylesXml).toContain("<w:contextualSpacing/>");
+    expect(stylesXml).toContain("<w:rPrDefault>");
+    expect(stylesXml).toContain("<w:pPrDefault/>");
+
+    const definedStyles = new Set(
+      [...stylesXml.matchAll(/w:styleId="([^"]+)"/g)].map((match) => match[1]),
+    );
+    const referencedStyles = [
+      ...stylesXml.matchAll(/w:basedOn w:val="([^"]+)"/g),
+      ...documentXml.matchAll(/w:(?:p|r)Style w:val="([^"]+)"/g),
+    ].map((match) => match[1]);
+
+    for (const styleId of referencedStyles) {
+      expect(definedStyles).toContain(styleId);
+    }
+
+    for (const font of new Set([...documentXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))) {
+      expect(fontTableXml).toContain(`<w:font w:name="${font}">`);
+    }
+
+    for (const part of ["word/styles.xml", "word/document.xml"]) {
+      const xml = await readZipText(zip, part);
+
+      for (const spacing of xml.match(/<w:spacing [^/]*\/>/g) ?? []) {
+        if (spacing.includes("w:line=")) {
+          expect(spacing).toContain('w:lineRule="auto"');
+        }
+      }
+    }
   });
 });

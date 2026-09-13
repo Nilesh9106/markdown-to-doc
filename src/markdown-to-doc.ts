@@ -11,6 +11,7 @@ import {
   ImageRun,
   type IRunOptions,
   LevelFormat,
+  LineRuleType,
   Packer,
   PageBreak,
   PageNumber,
@@ -26,6 +27,7 @@ import {
   VerticalAlign,
   WidthType,
 } from "docx";
+import JSZip from "jszip";
 import type {
   BlockContent,
   Content,
@@ -90,13 +92,16 @@ export async function markdownToDocx(
   const root = await parseMarkdown(markdown);
   const context = createContext(resolvedOptions);
   const document = new Document({
+    styles: createDocumentStyles(resolvedOptions),
     numbering: {
       config: createNumberingConfig(),
     },
     sections: await buildSections(root, context),
   });
 
-  return Packer.toBuffer(document);
+  const buffer = await Packer.toBuffer(document);
+
+  return patchOoxmlDefaults(buffer, resolvedOptions);
 }
 
 function createContext(options: ResolvedMarkdownToDocxOptions): RenderContext {
@@ -640,6 +645,7 @@ async function renderParagraph(
     spacing: {
       after: toTwips(context.options.theme.spacing.paragraphAfter),
       line: toTwips(context.options.theme.fontSize.body * context.options.theme.spacing.lineHeight),
+      lineRule: LineRuleType.AUTO,
     },
     numbering,
     children: await renderInline(node.children, context, {
@@ -1081,6 +1087,99 @@ async function renderTableCell(
     },
     children,
   });
+}
+
+function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
+  const { theme } = options;
+
+  return {
+    default: {
+      document: {
+        run: {
+          font: theme.fonts.body,
+          size: toHalfPoints(theme.fontSize.body),
+          color: hex(theme.colors.text),
+        },
+      },
+      listParagraph: {
+        paragraph: {
+          contextualSpacing: true,
+          indent: {
+            left: convertInchesToTwip(0.5),
+          },
+        },
+      },
+    },
+    paragraphStyles: [
+      {
+        id: "Normal",
+        name: "Normal",
+        quickFormat: true,
+      },
+    ],
+    characterStyles: [
+      {
+        id: "DefaultParagraphFont",
+        name: "Default Paragraph Font",
+        uiPriority: 1,
+        semiHidden: true,
+        unhideWhenUsed: true,
+      },
+    ],
+  };
+}
+
+async function patchOoxmlDefaults(
+  buffer: Buffer,
+  options: ResolvedMarkdownToDocxOptions,
+): Promise<Buffer> {
+  const zip = await JSZip.loadAsync(buffer);
+
+  const fontTable = await zip.file("word/fontTable.xml")?.async("string");
+
+  if (fontTable) {
+    const fonts = [
+      ...new Set([options.theme.fonts.body, options.theme.fonts.heading, options.theme.fonts.mono]),
+    ];
+    const entries = fonts
+      .map(
+        (font) =>
+          `<w:font w:name="${escapeXml(font)}"><w:charset w:val="00"/><w:family w:val="auto"/><w:pitch w:val="variable"/></w:font>`,
+      )
+      .join("");
+
+    zip.file(
+      "word/fontTable.xml",
+      fontTable.replace(/<w:fonts([^>]*?)\/>/, `<w:fonts$1>${entries}</w:fonts>`),
+    );
+  }
+
+  const styles = await zip.file("word/styles.xml")?.async("string");
+
+  if (styles) {
+    zip.file(
+      "word/styles.xml",
+      styles
+        .replace(
+          '<w:style w:type="paragraph" w:styleId="Normal">',
+          '<w:style w:type="paragraph" w:default="1" w:styleId="Normal">',
+        )
+        .replace(
+          '<w:style w:type="character" w:styleId="DefaultParagraphFont">',
+          '<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">',
+        ),
+    );
+  }
+
+  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function createNumberingConfig() {

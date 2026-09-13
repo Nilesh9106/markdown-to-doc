@@ -13,7 +13,39 @@ const tinyPng = Buffer.from(
 
 const markdown = await readFile(path.join(__dirname, "example.md"), "utf8");
 
+const DOCX_THEME = {
+  primary: "#3D7A8E",
+  secondary: "#5C95A8",
+  text: "#1F2933",
+  muted: "#5C7A85",
+  border: "#C5D8DE",
+  codeBg: "#EEF5F7",
+  quoteBg: "#F2F7F8",
+  tableHeaderBg: "#5C95A8",
+  tableAltBg: "#F7FAFB",
+} as const;
+
 const buffer = await markdownToDocx(markdown, {
+  theme: {
+    colors: { ...DOCX_THEME },
+    tables: {
+      borderColor: DOCX_THEME.border,
+    },
+    fonts: {
+      body: "PT Serif",
+      heading: "PT Serif",
+    },
+  },
+  page: {
+    size: "A4",
+    orientation: "portrait",
+    margin: {
+      top: 0.63,
+      bottom: 0.63,
+      left: 0.63,
+      right: 0.55,
+    },
+  },
   assets: {
     baseDir: __dirname,
     resolveImage: async ({ src }) => {
@@ -28,30 +60,45 @@ const buffer = await markdownToDocx(markdown, {
       return null;
     },
   },
-  toc: { show: true },
+  toc: { show: false },
   header: {
     show: true,
-    left: { type: "text", value: "Sample PRD" },
-    right: { type: "text", value: "Confidential" },
+    right: {
+      type: "text",
+      value: "Sample PRD",
+      style: {
+        color: DOCX_THEME.primary,
+        bold: true,
+        size: 10,
+      },
+    },
     borderTop: true,
+    borderColor: DOCX_THEME.primary,
   },
   footer: {
     show: true,
-    left: { type: "pageNumber", format: "currentOfTotal" },
-    right: { type: "text", value: "markdown-to-doc" },
+    left: {
+      type: "pageNumber",
+      format: "currentOfTotal",
+      style: { color: DOCX_THEME.muted },
+    },
+    right: {
+      type: "text",
+      value: "markdown-to-doc",
+      style: { color: DOCX_THEME.primary },
+    },
     borderTop: true,
+    borderColor: DOCX_THEME.primary,
   },
   cover: {
-    show: true,
+    show: false,
     title: "Markdown to DOCX Example",
     subtitle: "Generated from the public package API",
     projectName: "markdown-to-doc",
     date: "May 2026",
-    logo: { kind: "path", value: "./logo.svg" },
-    logoPosition: "top-right",
     image: { kind: "buffer", value: tinyPng },
-    imageWidth: 440,
-    imageHeight: 180,
+    imageWidth: 100,
+    imageHeight: 100,
   },
 });
 
