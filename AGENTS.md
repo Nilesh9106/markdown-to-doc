@@ -123,9 +123,14 @@ Git history is not available in this workspace, so follow a conventional format:
   - linked issue/task when applicable.
 
 ## Release Process
+Run `bun run release` and enter the version when prompted. The script performs the steps below and
+refuses to run from a non-main branch, a dirty tree, a stale `main`, an existing tag, or an empty
+`[Unreleased]` changelog section. The manual steps remain the reference for what it does:
+
 - Update `package.json` version manually to the next release version.
 - Run `bun run format` after the version bump.
 - Run `bun run ci:check` and confirm it passes before releasing.
+- Move the `[Unreleased]` changelog entries under the new version heading with today's date.
 - Commit the release changes on `main` using the normal commit style.
 - Push the commit to GitHub: `git push origin main`.
 - Create an annotated tag that matches the publish workflow pattern `v*.*.*`, for example `git tag -a v1.0.3 -m "v1.0.3"`.
