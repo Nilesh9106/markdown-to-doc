@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-14
+
 ### Added
 
 - Added task list support so GFM checklist items (`- [ ]` and `- [x]`) render as checkbox glyphs indented to their list level instead of plain bullets, including nested task items and task items inside ordered lists.
