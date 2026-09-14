@@ -53,6 +53,7 @@ import type {
 } from "./types/markdown-to-doc.types.js";
 import { tokenizeCodeBlock } from "./utils/code-highlighting.js";
 import { resolveOptions } from "./utils/default-options.js";
+import { expandBlockHtml, expandInlineHtml, type UnderlineNode } from "./utils/html.js";
 import {
   type SizedImage,
   tryResolveConfiguredImage,
@@ -599,6 +600,11 @@ async function renderBlocks(
 
     if (node.type === "table") {
       children.push(await renderTable(node, context));
+      continue;
+    }
+
+    if (node.type === "html") {
+      children.push(...(await renderBlocks(expandBlockHtml(node.value), context)));
     }
   }
 
@@ -663,7 +669,7 @@ async function renderInline(
 ): Promise<ParagraphChild[]> {
   const children: ParagraphChild[] = [];
 
-  for (const node of nodes) {
+  for (const node of expandInlineHtml(nodes)) {
     if (node.type === "text") {
       children.push(new TextRun({ text: node.value, ...baseStyle }));
       continue;
@@ -694,6 +700,16 @@ async function renderInline(
         ...(await renderInline(node.children, context, {
           ...baseStyle,
           strike: true,
+        })),
+      );
+      continue;
+    }
+
+    if ((node as { type: string }).type === "htmlUnderline") {
+      children.push(
+        ...(await renderInline((node as unknown as UnderlineNode).children, context, {
+          ...baseStyle,
+          underline: { type: UnderlineType.SINGLE },
         })),
       );
       continue;
@@ -832,6 +848,8 @@ async function renderListItem(
   const paragraphs: Paragraph[] = [];
   let consumedNumbering = false;
 
+  const isTask = typeof node.checked === "boolean";
+
   for (const child of node.children) {
     if (child.type === "list") {
       paragraphs.push(...(await renderList(child, context, depth + 1)));
@@ -840,11 +858,13 @@ async function renderListItem(
 
     if (child.type === "paragraph") {
       paragraphs.push(
-        await renderParagraph(child, context, {
-          reference,
-          level: Math.min(depth, 3),
-          instance,
-        }),
+        isTask && !consumedNumbering
+          ? await renderTaskItem(child, context, node.checked === true, depth)
+          : await renderParagraph(child, context, {
+              reference,
+              level: Math.min(depth, 3),
+              instance,
+            }),
       );
       consumedNumbering = true;
       continue;
@@ -882,6 +902,42 @@ async function renderListItem(
   }
 
   return paragraphs;
+}
+
+async function renderTaskItem(
+  node: MdParagraph,
+  context: RenderContext,
+  checked: boolean,
+  depth: number,
+): Promise<Paragraph> {
+  const indent = toTwips(18 + depth * 18);
+
+  return new Paragraph({
+    indent: {
+      left: indent,
+      hanging: toTwips(12),
+    },
+    spacing: {
+      after: toTwips(context.options.theme.spacing.paragraphAfter),
+      line: toTwips(context.options.theme.fontSize.body * context.options.theme.spacing.lineHeight),
+      lineRule: LineRuleType.AUTO,
+    },
+    children: [
+      new TextRun({
+        text: checked ? "\u2611 " : "\u2610 ",
+        font: context.options.theme.fonts.body,
+        color: checked
+          ? hex(context.options.theme.colors.primary)
+          : hex(context.options.theme.colors.text),
+        size: toHalfPoints(context.options.theme.fontSize.body),
+      }),
+      ...(await renderInline(node.children, context, {
+        font: context.options.theme.fonts.body,
+        color: context.options.theme.colors.text,
+        size: toHalfPoints(context.options.theme.fontSize.body),
+      })),
+    ],
+  });
 }
 
 async function renderBlockquote(node: Parent, context: RenderContext): Promise<Paragraph[]> {

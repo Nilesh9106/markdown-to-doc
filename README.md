@@ -28,9 +28,11 @@
   </a>
 </p>
 
-# markdown-to-doc
+# markdown-to-doc - Convert Markdown to DOCX (Word) in Node.js and Bun
 
-`markdown-to-doc` converts Markdown into a styled `.docx` file and returns it as a `Buffer`.
+`markdown-to-doc` converts Markdown into a styled `.docx` Word document and returns it as a `Buffer`.
+It works as a TypeScript library and as a CLI (`markdown-to-doc input.md -o output.docx`), with no
+Microsoft Word, LibreOffice, or Pandoc installation required.
 
 It is built for application-driven document generation:
 
@@ -58,6 +60,8 @@ It is built for application-driven document generation:
   - [Asset Options](#asset-options)
   - [Image Sources](#image-sources)
 - [Supported Markdown](#supported-markdown)
+  - [Task lists](#task-lists)
+  - [Raw HTML](#raw-html)
 - [Behavior Notes](#behavior-notes)
 - [Example Script](#example-script)
 - [Errors](#errors)
@@ -388,7 +392,44 @@ The package supports the Markdown elements most commonly used in reports and tec
 | Fenced code blocks | Yes |
 | Horizontal rules | Yes |
 | GFM tables | Yes |
-| Raw HTML | No |
+| Task lists `- [ ]` / `- [x]` | Yes |
+| Raw HTML | Partial (see below) |
+
+### Task lists
+
+GFM task list items render as `☐` and `☑` checkbox glyphs instead of bullets, indented to match the
+list level. Checked boxes use the theme primary color.
+
+```md
+- [x] Ship the release
+- [ ] Write the changelog
+```
+
+### Raw HTML
+
+A fixed subset of HTML is mapped onto the same DOCX styles used for Markdown. Everything else is
+dropped along with its content, so unsupported markup never leaks into the document as literal text.
+
+| HTML | Rendered as |
+| --- | --- |
+| `<b>`, `<strong>` | Bold |
+| `<i>`, `<em>` | Italic |
+| `<u>`, `<ins>` | Underline |
+| `<s>`, `<del>`, `<strike>` | Strikethrough |
+| `<code>` | Inline code |
+| `<a href>` | Hyperlink |
+| `<img src>` | Image |
+| `<br>` | Line break |
+| `<p>` | Paragraph |
+| `<h1>` to `<h6>` | Heading |
+| `<hr>` | Horizontal rule |
+| `<ul>`, `<ol>`, `<li>` | List |
+
+Inline HTML may wrap Markdown, and Markdown may appear inside supported tags:
+
+```md
+This is <u>underlined **and bold**</u> text.
+```
 
 ## Behavior Notes
 
