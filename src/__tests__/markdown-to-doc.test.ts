@@ -253,3 +253,141 @@ describe("markdownToDocx", () => {
     }
   });
 });
+
+describe("task lists", () => {
+  it("renders checked and unchecked items with checkbox glyphs", async () => {
+    const buffer = await markdownToDocx("- [ ] todo item\n- [x] done item");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("☐ ");
+    expect(documentXml).toContain("☑ ");
+    expect(documentXml).toContain("todo item");
+    expect(documentXml).toContain("done item");
+  });
+
+  it("renders nested task items with deeper indentation", async () => {
+    const buffer = await markdownToDocx("- [ ] parent\n  - [x] child");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+    const indents = [...documentXml.matchAll(/<w:ind w:left="(\d+)"/g)].map((match) =>
+      Number(match[1]),
+    );
+
+    expect(documentXml).toContain("parent");
+    expect(documentXml).toContain("child");
+    expect(indents.length).toBeGreaterThanOrEqual(2);
+    expect(Math.max(...indents)).toBeGreaterThan(Math.min(...indents));
+  });
+
+  it("keeps inline formatting inside a task item", async () => {
+    const buffer = await markdownToDocx("- [x] ship **the** release");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("☑ ");
+    expect(documentXml).toContain("<w:b/>");
+    expect(documentXml).toContain("release");
+  });
+
+  it("supports task items inside ordered lists", async () => {
+    const buffer = await markdownToDocx("1. [ ] first task\n2. [x] second task");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("☐ ");
+    expect(documentXml).toContain("☑ ");
+    expect(documentXml).toContain("first task");
+    expect(documentXml).toContain("second task");
+  });
+
+  it("mixes task items and plain items in one list", async () => {
+    const buffer = await markdownToDocx("- [ ] task item\n- plain item");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("☐ ");
+    expect(documentXml).toContain("task item");
+    expect(documentXml).toContain("plain item");
+    expect(documentXml).toContain("w:numPr");
+  });
+
+  it("keeps bullet numbering for plain list items", async () => {
+    const buffer = await markdownToDocx("- plain item");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("w:numPr");
+    expect(documentXml).not.toContain("☐");
+  });
+});
+
+describe("raw html", () => {
+  it("maps inline formatting tags to runs", async () => {
+    const buffer = await markdownToDocx(
+      'Text with <b>bold</b>, <i>italic</i>, <u>under</u>, <s>struck</s> and <a href="https://example.com">a link</a>.',
+    );
+    const zip = await openDocx(buffer);
+    const documentXml = await readZipText(zip, "word/document.xml");
+
+    expect(documentXml).toContain("bold");
+    expect(documentXml).toContain("italic");
+    expect(documentXml).toContain("under");
+    expect(documentXml).toContain("struck");
+    expect(documentXml).toContain("a link");
+    expect(documentXml).toContain("<w:b/>");
+    expect(documentXml).toContain("<w:i/>");
+    expect(documentXml).toContain("<w:u ");
+    expect(documentXml).toContain("<w:strike/>");
+  });
+
+  it("renders block level html", async () => {
+    const buffer = await markdownToDocx(
+      "<h2>HTML heading</h2>\n\n<p>HTML paragraph</p>\n\n<ul><li>first</li><li>second</li></ul>",
+    );
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("HTML heading");
+    expect(documentXml).toContain("HTML paragraph");
+    expect(documentXml).toContain("first");
+    expect(documentXml).toContain("second");
+  });
+
+  it("applies html formatting inside table cells", async () => {
+    const buffer = await markdownToDocx("| Col |\n| --- |\n| <b>cell bold</b> |");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("cell bold");
+    expect(documentXml).toContain("<w:b/>");
+  });
+
+  it("renders html line breaks", async () => {
+    const buffer = await markdownToDocx("first line<br>second line");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("<w:br/>");
+    expect(documentXml).toContain("second line");
+  });
+
+  it("mixes markdown inside supported html tags", async () => {
+    const buffer = await markdownToDocx("<u>underlined **and bold**</u>");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("<w:u ");
+    expect(documentXml).toContain("<w:b/>");
+    expect(documentXml).toContain("and bold");
+  });
+
+  it("renders html hyperlinks as real hyperlinks", async () => {
+    const buffer = await markdownToDocx('<a href="https://example.com">click</a>');
+    const zip = await openDocx(buffer);
+    const documentXml = await readZipText(zip, "word/document.xml");
+    const relsXml = await readZipText(zip, "word/_rels/document.xml.rels");
+
+    expect(documentXml).toContain("click");
+    expect(documentXml).toContain("w:hyperlink");
+    expect(relsXml).toContain("https://example.com");
+  });
+
+  it("drops unsupported elements and their content", async () => {
+    const buffer = await markdownToDocx("<script>alert(1)</script>\n\n<p>kept</p>");
+    const documentXml = await readZipText(await openDocx(buffer), "word/document.xml");
+
+    expect(documentXml).toContain("kept");
+    expect(documentXml).not.toContain("alert(1)");
+  });
+});

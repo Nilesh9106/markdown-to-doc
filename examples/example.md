@@ -405,3 +405,41 @@ Current payment-side API validation relies heavily on manual scripts, browser ne
 * Business formulas such as net worth calculation must be explicitly defined or traceable from project context.
 
 * Representative payment data and environments must be available for meaningful validation execution.
+
+## Delivery checklist
+
+* [x] Publish the OpenAPI discovery spike
+* [x] Agree on the traceability matrix format
+* [ ] Wire Postman collections into CI
+* [ ] Sign off on the non-functional performance budget
+  * [x] Draft the budget numbers
+  * [ ] Review with the platform team
+
+## Raw HTML samples
+
+Inline formatting: <b>bold</b>, <i>italic</i>, <u>underlined</u>, <s>struck through</s>,
+<code>inlineCode()</code>, and <a href="https://example.com/spec">a spec link</a>.
+
+Nested markdown inside HTML: <u>underlined **and bold**</u>.
+
+A hard break after this line.<br>Rendered on the next line.
+
+<h3>HTML heading</h3>
+
+<p>HTML paragraph with an <a href="https://example.com">embedded link</a>.</p>
+
+<ul>
+  <li>First HTML list item</li>
+  <li>Second HTML list item</li>
+</ul>
+
+<ol>
+  <li>Ordered HTML item</li>
+  <li>Another ordered HTML item</li>
+</ol>
+
+<hr>
+
+<div>Unsupported tags are dropped along with their content.</div>
+
+<script>alert("this must never appear in the document");</script>
