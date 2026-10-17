@@ -73,6 +73,7 @@ interface RenderContext {
 
 const A4 = { widthMm: 210, heightMm: 297 };
 const LETTER = { widthInches: 8.5, heightInches: 11 };
+const FIXED_EPOCH = new Date("1980-01-01T00:00:00Z");
 
 /**
  * Converts markdown into a styled DOCX file and returns the resulting buffer.
@@ -1225,6 +1226,24 @@ async function patchOoxmlDefaults(
           '<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">',
         ),
     );
+  }
+
+  if (options.deterministic) {
+    const coreProps = await zip.file("docProps/core.xml")?.async("string");
+
+    if (coreProps) {
+      zip.file(
+        "docProps/core.xml",
+        coreProps.replace(
+          /(<dcterms:(?:created|modified)[^>]*>)[^<]*/g,
+          `$1${FIXED_EPOCH.toISOString()}`,
+        ),
+      );
+    }
+
+    zip.forEach((_, file) => {
+      file.date = FIXED_EPOCH;
+    });
   }
 
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });

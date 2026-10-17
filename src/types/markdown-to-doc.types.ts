@@ -297,6 +297,11 @@ export interface MarkdownToDocxOptions {
   theme?: ThemeOptions;
   /** Asset resolution options, including private image hooks. */
   assets?: AssetOptions;
+  /**
+   * Produces byte-identical output for identical input by pinning document
+   * and zip entry timestamps to a fixed epoch. Defaults to `false`.
+   */
+  deterministic?: boolean;
 }
 
 /**
@@ -334,4 +339,5 @@ export interface ResolvedMarkdownToDocxOptions {
     tables: Required<ThemeTableOptions>;
   };
   assets: Required<AssetOptions>;
+  deterministic: boolean;
 }

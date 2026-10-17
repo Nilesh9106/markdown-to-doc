@@ -391,3 +391,22 @@ describe("raw html", () => {
     expect(documentXml).not.toContain("alert(1)");
   });
 });
+
+describe("deterministic output", () => {
+  it("produces byte-identical buffers for identical input", async () => {
+    const markdown = "# Title\n\n1. one\n2. two\n\n![pixel](./pixel.png)";
+    const options = {
+      deterministic: true,
+      assets: { resolveImage: async () => tinyPng },
+    };
+
+    const first = await markdownToDocx(markdown, options);
+    await Bun.sleep(1100);
+    const second = await markdownToDocx(markdown, options);
+
+    expect(first.equals(second)).toBe(true);
+
+    const coreXml = await readZipText(await openDocx(first), "docProps/core.xml");
+    expect(coreXml).toContain("1980-01-01T00:00:00.000Z");
+  });
+});
