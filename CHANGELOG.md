@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-17
+
 ### Added
 
 - Added a `deterministic` option that pins `docProps/core.xml` timestamps and zip entry dates to a fixed epoch, so identical input produces byte-identical output.
