@@ -23,7 +23,7 @@ export interface TextStyle {
 export type ImageSource =
   | { kind: "path"; value: string }
   | { kind: "base64"; value: string }
-  | { kind: "buffer"; value: Buffer };
+  | { kind: "buffer"; value: Uint8Array | ArrayBuffer };
 
 /**
  * Controls the optional cover page that appears before the table of contents
@@ -250,7 +250,7 @@ export interface ImageResolverInput {
  */
 export interface ResolvedImage {
   /** Binary image data to embed in the DOCX. */
-  data: Buffer;
+  data: Uint8Array | ArrayBuffer;
   /** Optional pixel width override. */
   width?: number;
   /** Optional pixel height override. */
@@ -263,7 +263,7 @@ export interface ResolvedImage {
 export interface AssetOptions {
   /**
    * Base directory used to resolve relative markdown image paths.
-   * Defaults to `process.cwd()`.
+   * Defaults to `process.cwd()` in Node and Bun, and `""` in the browser.
    */
   baseDir?: string;
   /**
@@ -271,7 +271,9 @@ export interface AssetOptions {
    * Use this to fetch private images through your own proxy, signed URL flow,
    * storage SDK, or authentication-aware API.
    */
-  resolveImage?: (image: ImageResolverInput) => Promise<ResolvedImage | Buffer | null | undefined>;
+  resolveImage?: (
+    image: ImageResolverInput,
+  ) => Promise<ResolvedImage | Uint8Array | ArrayBuffer | null | undefined>;
   /**
    * Enables built-in `fetch` for public `http` and `https` markdown images.
    * Defaults to `true`.
@@ -340,4 +342,14 @@ export interface ResolvedMarkdownToDocxOptions {
   };
   assets: Required<AssetOptions>;
   deterministic: boolean;
+}
+
+/**
+ * Runtime-specific hooks used by the Node and browser entry points.
+ */
+export interface Platform {
+  /** Reads a local image path relative to `baseDir`. */
+  readLocalFile(baseDir: string, src: string): Promise<Uint8Array>;
+  /** Base directory used when `assets.baseDir` is not provided. */
+  defaultBaseDir(): string;
 }

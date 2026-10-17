@@ -102,7 +102,7 @@ const defaultOptions: ResolvedMarkdownToDocxOptions = {
     },
   },
   assets: {
-    baseDir: process.cwd(),
+    baseDir: "",
     resolveImage: async () => undefined,
     fetchRemoteImages: true,
   },
@@ -112,7 +112,10 @@ const defaultOptions: ResolvedMarkdownToDocxOptions = {
 /**
  * Applies the package defaults to user-provided options.
  */
-export function resolveOptions(options: MarkdownToDocxOptions = {}): ResolvedMarkdownToDocxOptions {
+export function resolveOptions(
+  options: MarkdownToDocxOptions = {},
+  defaultBaseDir = defaultOptions.assets.baseDir,
+): ResolvedMarkdownToDocxOptions {
   const theme = {
     ...defaultOptions.theme,
     ...options.theme,
@@ -176,6 +179,7 @@ export function resolveOptions(options: MarkdownToDocxOptions = {}): ResolvedMar
     theme,
     assets: {
       ...defaultOptions.assets,
+      baseDir: defaultBaseDir,
       ...options.assets,
     },
     deterministic: options.deterministic ?? defaultOptions.deterministic,

@@ -1,5 +1,5 @@
 export { MarkdownToDocError } from "./errors/MarkdownToDocError.js";
-export { markdownToDocx } from "./markdown-to-doc.js";
+export { markdownToDocx, markdownToDocxBlob } from "./platform/node.js";
 export type {
   AssetOptions,
   CoverOptions,

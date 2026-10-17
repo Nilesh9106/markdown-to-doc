@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 ### Added
 
 - Added a `deterministic` option that pins `docProps/core.xml` timestamps and zip entry dates to a fixed epoch, so identical input produces byte-identical output.
+- Added browser and edge runtime support through `browser` and `worker` export conditions. The browser build has no Node built-ins, returns a `Uint8Array` from `markdownToDocx`, and matches Node output byte for byte in deterministic mode.
+- Added `markdownToDocxBlob`, which returns the document as a Word `Blob` in both builds.
+
+### Changed
+
+- Widened image types so `ImageSource` `buffer` values, `ResolvedImage.data` and `resolveImage` results accept `Uint8Array` and `ArrayBuffer` as well as `Buffer`.
 
 ## [1.1.3] - 2026-09-14
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import JSZip from "jszip";
-import { markdownToDocx } from "../markdown-to-doc.js";
+import { markdownToDocx } from "../platform/node.js";
 
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9l8AAAAASUVORK5CYII=",
