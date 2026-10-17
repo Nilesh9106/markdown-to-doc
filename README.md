@@ -207,6 +207,7 @@ Returns: `Promise<Buffer>`
 | `page` | `PageOptions` | Built-in defaults | Controls page size, orientation, and margins. |
 | `theme` | `ThemeOptions` | Built-in defaults | Controls colors, fonts, spacing, and table styling. |
 | `assets` | `AssetOptions` | Built-in defaults | Controls image loading and resolution. |
+| `deterministic` | `boolean` | `false` | Pins document and zip timestamps so identical input produces byte-identical output. |
 
 ### Cover Options
 

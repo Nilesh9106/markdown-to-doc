@@ -106,6 +106,7 @@ const defaultOptions: ResolvedMarkdownToDocxOptions = {
     resolveImage: async () => undefined,
     fetchRemoteImages: true,
   },
+  deterministic: false,
 };
 
 /**
@@ -177,5 +178,6 @@ export function resolveOptions(options: MarkdownToDocxOptions = {}): ResolvedMar
       ...defaultOptions.assets,
       ...options.assets,
     },
+    deterministic: options.deterministic ?? defaultOptions.deterministic,
   };
 }
