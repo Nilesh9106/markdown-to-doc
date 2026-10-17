@@ -46,6 +46,7 @@ It is built for application-driven document generation:
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [CLI](#cli)
+- [Browser Usage](#browser-usage)
 - [What The Package Does](#what-the-package-does)
 - [API](#api)
 - [Configuration](#configuration)
@@ -168,6 +169,29 @@ CLI config supports JSON-serializable options only. Function-based options such 
 - Relative markdown and asset paths resolve from the input markdown file when one is provided.
 - Run `markdown-to-doc --help` to see the full usage summary.
 
+## Browser Usage
+
+The same import works in browsers and edge runtimes (Vite, webpack, esbuild, Next.js client components, Cloudflare Workers, Vercel Edge). Bundlers pick the browser build automatically through the `browser` and `worker` export conditions, with no polyfills or config.
+
+```ts
+import { markdownToDocxBlob } from "markdown-to-doc";
+
+const blob = await markdownToDocxBlob(markdown, { cover: { title: "Report" } });
+const url = URL.createObjectURL(blob);
+Object.assign(document.createElement("a"), { href: url, download: "report.docx" }).click();
+URL.revokeObjectURL(url);
+```
+
+In the browser build, `markdownToDocx` returns a `Uint8Array` instead of a `Buffer`. With `deterministic: true`, the bytes match Node output for the same input.
+
+Limitations:
+
+- Relative image paths need `assets.resolveImage`. Without it, they render as the fallback image.
+- Remote images must allow CORS.
+- `kind: "path"` image sources (cover, header, footer) are not supported.
+
+Bundle size: about 225 kB gzip in a minimal Vite app, most of it `docx`, `jszip` and `lowlight` with its common languages.
+
 ## What The Package Does
 
 The package takes a Markdown string and returns a fully generated DOCX file as a `Buffer`.
@@ -185,6 +209,7 @@ It supports:
 
 ```ts
 markdownToDocx(markdown: string, options?: MarkdownToDocxOptions): Promise<Buffer>
+markdownToDocxBlob(markdown: string, options?: MarkdownToDocxOptions): Promise<Blob>
 ```
 
 | Parameter | Type | Required | Description |
@@ -192,7 +217,7 @@ markdownToDocx(markdown: string, options?: MarkdownToDocxOptions): Promise<Buffe
 | `markdown` | `string` | Yes | Markdown content to render. |
 | `options` | `MarkdownToDocxOptions` | No | Presentation and document configuration. |
 
-Returns: `Promise<Buffer>`
+Returns: `Promise<Buffer>` in Node and Bun, `Promise<Uint8Array>` in the browser build. `markdownToDocxBlob` returns a `Blob` with the Word MIME type in both.
 
 ## Configuration
 
@@ -353,8 +378,8 @@ Supported page number formats:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `baseDir` | `string` | `process.cwd()` | Base directory used to resolve relative Markdown image paths. |
-| `resolveImage` | `(image) => Promise<ResolvedImage \| Buffer \| null \| undefined>` | Built-in no-op | Custom callback used before the built-in image resolver. |
+| `baseDir` | `string` | `process.cwd()` (`""` in the browser) | Base directory used to resolve relative Markdown image paths. |
+| `resolveImage` | `(image) => Promise<ResolvedImage \| Uint8Array \| ArrayBuffer \| null \| undefined>` | Built-in no-op | Custom callback used before the built-in image resolver. |
 | `fetchRemoteImages` | `boolean` | `true` | Enables built-in fetching for public `http` and `https` images. |
 
 Use `resolveImage` when you need to:
@@ -372,7 +397,7 @@ Images used in cover, header, and footer configuration support these source type
 | --- | --- | --- |
 | `path` | `{ kind: "path"; value: string }` | Reads an image from the filesystem. |
 | `base64` | `{ kind: "base64"; value: string }` | Uses a base64-encoded image string. |
-| `buffer` | `{ kind: "buffer"; value: Buffer }` | Uses an in-memory image buffer. |
+| `buffer` | `{ kind: "buffer"; value: Uint8Array \| ArrayBuffer }` | Uses in-memory image bytes, including a Node `Buffer`. |
 
 ## Supported Markdown
 
@@ -440,7 +465,7 @@ The TOC is written as a standard DOCX field. Some viewers, especially Google Doc
 
 ### Output behavior
 
-The package returns a `Buffer` only. It does not write a file to disk.
+The package returns the file in memory (a `Buffer` in Node and Bun, a `Uint8Array` or `Blob` in the browser). It does not write a file to disk.
 
 ### Styling model
 
@@ -469,6 +494,7 @@ import { MarkdownToDocError } from "markdown-to-doc";
 The package exports:
 
 - `markdownToDocx`
+- `markdownToDocxBlob`
 - `MarkdownToDocError`
 - public TypeScript option and helper types
 

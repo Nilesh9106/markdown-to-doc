@@ -1,26 +1,34 @@
-import { Buffer } from "node:buffer";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { imageSize } from "image-size";
 import { MarkdownToDocError } from "../errors/MarkdownToDocError.js";
-import type { AssetOptions, ImageSource, ResolvedImage } from "../types/markdown-to-doc.types.js";
+import type { AssetOptions, ImageSource } from "../types/markdown-to-doc.types.js";
+import { base64ToBytes, isBinaryData, toBytes } from "./bytes.js";
 
 const DATA_URL_PATTERN = /^data:(?<mime>image\/[a-zA-Z0-9.+-]+);base64,(?<data>.+)$/;
 const REMOTE_URL_PATTERN = /^https?:\/\//i;
-const TRANSPARENT_PNG_FALLBACK = Buffer.from(
+const TRANSPARENT_PNG_FALLBACK = base64ToBytes(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9l8AAAAASUVORK5CYII=",
-  "base64",
 );
 
 type SupportedImageType = "jpg" | "png" | "gif" | "bmp" | "svg";
 
+/**
+ * Reads a local image path relative to the configured base directory.
+ */
+export type LocalImageReader = (src: string) => Promise<Uint8Array>;
+
+interface MeasurableImage {
+  data: Uint8Array;
+  width?: number;
+  height?: number;
+}
+
 export interface SizedImage {
-  data: Buffer;
+  data: Uint8Array;
   width: number;
   height: number;
   type: SupportedImageType;
   fallback?: {
-    data: Buffer;
+    data: Uint8Array;
     type: "png";
   };
 }
@@ -30,27 +38,27 @@ export interface SizedImage {
  */
 export async function resolveConfiguredImage(
   source: ImageSource,
-  baseDir: string,
+  readLocalImage: LocalImageReader,
 ): Promise<SizedImage> {
   if (source.kind === "buffer") {
-    return withMeasuredSize({ data: source.value });
+    return withMeasuredSize({ data: toBytes(source.value) });
   }
 
   if (source.kind === "base64") {
-    return withMeasuredSize({ data: Buffer.from(source.value, "base64") });
+    return withMeasuredSize({ data: base64ToBytes(source.value) });
   }
 
   return withMeasuredSize({
-    data: await readFile(path.resolve(baseDir, source.value)),
+    data: await readLocalImage(source.value),
   });
 }
 
 export async function tryResolveConfiguredImage(
   source: ImageSource,
-  baseDir: string,
+  readLocalImage: LocalImageReader,
 ): Promise<SizedImage | null> {
   try {
-    return await resolveConfiguredImage(source, baseDir);
+    return await resolveConfiguredImage(source, readLocalImage);
   } catch {
     return null;
   }
@@ -63,15 +71,16 @@ export async function tryResolveConfiguredImage(
 export async function resolveMarkdownImage(
   input: { src: string; alt?: string; title?: string },
   assets: Required<AssetOptions>,
+  readLocalImage: LocalImageReader,
 ): Promise<SizedImage> {
   const resolvedByUser = await assets.resolveImage(input);
 
-  if (Buffer.isBuffer(resolvedByUser)) {
-    return withMeasuredSize({ data: resolvedByUser });
+  if (isBinaryData(resolvedByUser)) {
+    return withMeasuredSize({ data: toBytes(resolvedByUser) });
   }
 
   if (resolvedByUser) {
-    return withMeasuredSize(resolvedByUser);
+    return withMeasuredSize({ ...resolvedByUser, data: toBytes(resolvedByUser.data) });
   }
 
   if (DATA_URL_PATTERN.test(input.src)) {
@@ -82,7 +91,7 @@ export async function resolveMarkdownImage(
     }
 
     return withMeasuredSize({
-      data: Buffer.from(match.groups.data, "base64"),
+      data: base64ToBytes(match.groups.data),
     });
   }
 
@@ -102,27 +111,28 @@ export async function resolveMarkdownImage(
     const arrayBuffer = await response.arrayBuffer();
 
     return withMeasuredSize({
-      data: Buffer.from(arrayBuffer),
+      data: new Uint8Array(arrayBuffer),
     });
   }
 
   return withMeasuredSize({
-    data: await readFile(path.resolve(assets.baseDir, input.src)),
+    data: await readLocalImage(input.src),
   });
 }
 
 export async function tryResolveMarkdownImage(
   input: { src: string; alt?: string; title?: string },
   assets: Required<AssetOptions>,
+  readLocalImage: LocalImageReader,
 ): Promise<SizedImage | null> {
   try {
-    return await resolveMarkdownImage(input, assets);
+    return await resolveMarkdownImage(input, assets, readLocalImage);
   } catch {
     return null;
   }
 }
 
-function withMeasuredSize(image: ResolvedImage): SizedImage {
+function withMeasuredSize(image: MeasurableImage): SizedImage {
   const size = imageSize(image.data);
 
   if (!size.width || !size.height || !size.type) {

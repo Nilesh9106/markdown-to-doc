@@ -48,13 +48,16 @@ import { MarkdownToDocError } from "./errors/MarkdownToDocError.js";
 import type {
   HeaderFooterSlot,
   MarkdownToDocxOptions,
+  Platform,
   ResolvedMarkdownToDocxOptions,
   TextStyle,
 } from "./types/markdown-to-doc.types.js";
+import { type BinaryData, DOCX_MIME_TYPE } from "./utils/bytes.js";
 import { tokenizeCodeBlock } from "./utils/code-highlighting.js";
 import { resolveOptions } from "./utils/default-options.js";
 import { expandBlockHtml, expandInlineHtml, type UnderlineNode } from "./utils/html.js";
 import {
+  type LocalImageReader,
   type SizedImage,
   tryResolveConfiguredImage,
   tryResolveMarkdownImage,
@@ -66,6 +69,7 @@ type TableCellChild = Paragraph | Table;
 
 interface RenderContext {
   options: ResolvedMarkdownToDocxOptions;
+  readLocalImage: LocalImageReader;
   orderedListInstance: number;
   contentWidthPx: number;
   contentWidthTwips: number;
@@ -76,23 +80,22 @@ const LETTER = { widthInches: 8.5, heightInches: 11 };
 const FIXED_EPOCH = new Date("1980-01-01T00:00:00Z");
 
 /**
- * Converts markdown into a styled DOCX file and returns the resulting buffer.
- *
- * @param markdown Markdown source to render.
- * @param options Optional document configuration. All fields have defaults.
- * @returns A `Buffer` containing the generated `.docx` file.
+ * Converts markdown into a styled DOCX file using the given platform hooks.
  */
-export async function markdownToDocx(
+export async function renderDocx(
   markdown: string,
-  options: MarkdownToDocxOptions = {},
-): Promise<Buffer> {
+  options: MarkdownToDocxOptions,
+  platform: Platform,
+): Promise<Uint8Array> {
   if (typeof markdown !== "string") {
     throw new MarkdownToDocError("The markdown input must be a string.");
   }
 
-  const resolvedOptions = resolveOptions(options);
+  const resolvedOptions = resolveOptions(options, platform.defaultBaseDir());
   const root = await parseMarkdown(markdown);
-  const context = createContext(resolvedOptions);
+  const context = createContext(resolvedOptions, (src) =>
+    platform.readLocalFile(resolvedOptions.assets.baseDir, src),
+  );
   const document = new Document({
     styles: createDocumentStyles(resolvedOptions),
     numbering: {
@@ -101,14 +104,25 @@ export async function markdownToDocx(
     sections: await buildSections(root, context),
   });
 
-  const buffer = await Packer.toBuffer(document);
+  const buffer = await Packer.toArrayBuffer(document);
 
   return patchOoxmlDefaults(buffer, resolvedOptions);
 }
 
-function createContext(options: ResolvedMarkdownToDocxOptions): RenderContext {
+/**
+ * Wraps rendered DOCX bytes in a `Blob` with the Word MIME type.
+ */
+export function toDocxBlob(bytes: Uint8Array): Blob {
+  return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: DOCX_MIME_TYPE });
+}
+
+function createContext(
+  options: ResolvedMarkdownToDocxOptions,
+  readLocalImage: LocalImageReader,
+): RenderContext {
   return {
     options,
+    readLocalImage,
     orderedListInstance: 1,
     contentWidthPx: calculateContentWidthPx(options),
     contentWidthTwips: calculateContentWidthTwips(options),
@@ -204,12 +218,12 @@ function createPageProperties(options: ResolvedMarkdownToDocxOptions) {
 }
 
 async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
-  const { cover, theme, assets } = context.options;
+  const { cover, theme } = context.options;
   const children: Paragraph[] = [];
   const coverAlignment = cover.alignment === "left" ? AlignmentType.LEFT : AlignmentType.CENTER;
 
   if (cover.logo) {
-    const image = await tryResolveConfiguredImage(cover.logo, assets.baseDir);
+    const image = await tryResolveConfiguredImage(cover.logo, context.readLocalImage);
 
     if (image) {
       const alignment =
@@ -309,13 +323,13 @@ async function buildCoverPage(context: RenderContext): Promise<Paragraph[]> {
 }
 
 async function createCoverImageParagraph(context: RenderContext): Promise<Paragraph | null> {
-  const { cover, assets } = context.options;
+  const { cover } = context.options;
 
   if (!cover.image) {
     return null;
   }
 
-  const image = await tryResolveConfiguredImage(cover.image, assets.baseDir);
+  const image = await tryResolveConfiguredImage(cover.image, context.readLocalImage);
 
   if (!image) {
     return null;
@@ -444,7 +458,7 @@ async function renderHeaderFooterSlot(
       : undefined;
 
   if (slot.type === "image") {
-    const image = await tryResolveConfiguredImage(slot.source, context.options.assets.baseDir);
+    const image = await tryResolveConfiguredImage(slot.source, context.readLocalImage);
 
     return new Paragraph({
       alignment,
@@ -782,6 +796,7 @@ async function renderImage(node: Image, context: RenderContext): Promise<ImageRu
       title: node.title || undefined,
     },
     context.options.assets,
+    context.readLocalImage,
   );
 
   if (!image) {
@@ -1187,9 +1202,9 @@ function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
 }
 
 async function patchOoxmlDefaults(
-  buffer: Buffer,
+  buffer: BinaryData,
   options: ResolvedMarkdownToDocxOptions,
-): Promise<Buffer> {
+): Promise<Uint8Array> {
   const zip = await JSZip.loadAsync(buffer);
 
   const fontTable = await zip.file("word/fontTable.xml")?.async("string");
@@ -1246,7 +1261,7 @@ async function patchOoxmlDefaults(
     });
   }
 
-  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  return zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 }
 
 function escapeXml(value: string) {

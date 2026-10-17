@@ -4,7 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import process from "node:process";
 import { MarkdownToDocError } from "../errors/MarkdownToDocError.js";
-import { markdownToDocx } from "../markdown-to-doc.js";
+import { markdownToDocx } from "../platform/node.js";
 import type { MarkdownToDocxOptions } from "../types/markdown-to-doc.types.js";
 
 interface CliArguments {

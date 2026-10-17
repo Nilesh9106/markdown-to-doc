@@ -31,6 +31,14 @@
   },
   "exports": {
     ".": {
+      "browser": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
+      },
+      "worker": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
+      },
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
@@ -74,7 +82,7 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bunx --bun tsup src/index.ts --format esm,cjs --clean && bunx --bun tsup src/cli/index.ts --format esm --out-dir dist/cli && bunx --bun tsc --emitDeclarationOnly --noEmit false --outDir dist",
+    "build": "bunx --bun tsup src/index.ts --format esm,cjs --clean && bunx --bun tsup src/cli/index.ts --format esm --out-dir dist/cli && bunx --bun tsup src/browser.ts --format esm --platform browser && bunx --bun tsc --emitDeclarationOnly --noEmit false --outDir dist",
     "example": "bun run examples/markdown-to-docx.ts",
     "test": "bun test",
     "typecheck": "bunx --bun tsc --noEmit && bunx --bun tsc --noEmit -p tsconfig.test.json",
