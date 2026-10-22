@@ -6,6 +6,7 @@ import {
   Document,
   ExternalHyperlink,
   Footer,
+  FootnoteReferenceRun,
   Header,
   HeadingLevel,
   ImageRun,
@@ -32,6 +33,7 @@ import JSZip from "jszip";
 import type {
   BlockContent,
   Content,
+  FootnoteDefinition,
   Heading,
   Image,
   InlineCode,
@@ -53,7 +55,7 @@ import type {
   ResolvedMarkdownToDocxOptions,
   TextStyle,
 } from "./types/markdown-to-doc.types.js";
-import { type BinaryData, DOCX_MIME_TYPE } from "./utils/bytes.js";
+import { type BinaryData, base64ToBytes, DOCX_MIME_TYPE, toBytes } from "./utils/bytes.js";
 import { tokenizeCodeBlock } from "./utils/code-highlighting.js";
 import { resolveOptions } from "./utils/default-options.js";
 import { expandBlockHtml, expandInlineHtml, type UnderlineNode } from "./utils/html.js";
@@ -66,6 +68,7 @@ import {
 } from "./utils/image.js";
 import { extractText, parseMarkdown } from "./utils/markdown.js";
 import { latexToOmml } from "./utils/math.js";
+import { applyTemplate, type LoadedTemplate, loadTemplate } from "./utils/template.js";
 
 type SectionChild = Paragraph | Table | TableOfContents;
 type TableCellChild = Paragraph | Table;
@@ -76,6 +79,10 @@ interface RenderContext {
   orderedListInstance: number;
   contentWidthPx: number;
   contentWidthTwips: number;
+  footnoteDefinitions: Map<string, FootnoteDefinition>;
+  footnoteIds: Map<string, number>;
+  paragraphStyle: string;
+  useTemplateSection: boolean;
 }
 
 const A4 = { widthMm: 210, heightMm: 297 };
@@ -99,17 +106,88 @@ export async function renderDocx(
   const context = createContext(resolvedOptions, (src) =>
     platform.readLocalFile(resolvedOptions.assets.baseDir, src),
   );
+  const template = resolvedOptions.template
+    ? await loadTemplate(
+        await readTemplateBytes(resolvedOptions.template.source, platform, resolvedOptions),
+        resolvedOptions.template.headers === "template",
+      )
+    : undefined;
+
+  if (template?.contentWidthTwips) {
+    context.useTemplateSection = true;
+    context.contentWidthTwips = template.contentWidthTwips;
+    context.contentWidthPx = Math.floor((template.contentWidthTwips / 1440) * 96);
+  }
+
+  collectFootnoteDefinitions(root, context);
+
+  const sections = await buildSections(root, context);
   const document = new Document({
     styles: createDocumentStyles(resolvedOptions),
     numbering: {
       config: createNumberingConfig(),
     },
-    sections: await buildSections(root, context),
+    footnotes: await buildFootnotes(context),
+    sections,
   });
 
   const buffer = await Packer.toArrayBuffer(document);
 
-  return patchOoxmlDefaults(buffer, resolvedOptions);
+  return patchOoxmlDefaults(buffer, resolvedOptions, template, options.theme !== undefined);
+}
+
+async function readTemplateBytes(
+  source: NonNullable<ResolvedMarkdownToDocxOptions["template"]>["source"],
+  platform: Platform,
+  options: ResolvedMarkdownToDocxOptions,
+): Promise<Uint8Array> {
+  if (source.kind === "buffer") {
+    return toBytes(source.value);
+  }
+
+  if (source.kind === "base64") {
+    return base64ToBytes(source.value);
+  }
+
+  return platform.readLocalFile(options.assets.baseDir, source.value);
+}
+
+function collectFootnoteDefinitions(root: Root, context: RenderContext): void {
+  for (const node of root.children) {
+    if (node.type === "footnoteDefinition") {
+      context.footnoteDefinitions.set(node.identifier, node);
+    }
+  }
+}
+
+async function buildFootnotes(
+  context: RenderContext,
+): Promise<Record<number, { children: Paragraph[] }>> {
+  const footnotes: Record<number, { children: Paragraph[] }> = {};
+  const rendered = new Set<string>();
+  context.paragraphStyle = "FootnoteText";
+
+  while (rendered.size < context.footnoteIds.size) {
+    for (const [identifier, id] of [...context.footnoteIds]) {
+      if (rendered.has(identifier)) {
+        continue;
+      }
+
+      rendered.add(identifier);
+      const definition = context.footnoteDefinitions.get(identifier);
+      const blocks = definition
+        ? await renderBlocks(definition.children as BlockContent[], context)
+        : [];
+
+      footnotes[id] = {
+        children: blocks.filter((block): block is Paragraph => block instanceof Paragraph),
+      };
+    }
+  }
+
+  context.paragraphStyle = "Normal";
+
+  return footnotes;
 }
 
 /**
@@ -129,14 +207,22 @@ function createContext(
     orderedListInstance: 1,
     contentWidthPx: calculateContentWidthPx(options),
     contentWidthTwips: calculateContentWidthTwips(options),
+    footnoteDefinitions: new Map(),
+    footnoteIds: new Map(),
+    paragraphStyle: "Normal",
+    useTemplateSection: false,
   };
 }
 
 async function buildSections(root: Root, context: RenderContext) {
   const sections = [];
   const page = createPageProperties(context.options);
-  const mainHeaders = await buildHeaderFooter(context.options.header, context, "header");
-  const mainFooters = await buildHeaderFooter(context.options.footer, context, "footer");
+  const mainHeaders = context.useTemplateSection
+    ? undefined
+    : await buildHeaderFooter(context.options.header, context, "header");
+  const mainFooters = context.useTemplateSection
+    ? undefined
+    : await buildHeaderFooter(context.options.footer, context, "footer");
 
   if (context.options.cover.show) {
     sections.push({
@@ -632,6 +718,26 @@ async function renderBlocks(
   return children;
 }
 
+function renderFootnoteReference(
+  identifier: string,
+  label: string | null | undefined,
+  context: RenderContext,
+  baseStyle: Partial<IRunOptions>,
+): ParagraphChild {
+  if (!context.footnoteDefinitions.has(identifier)) {
+    return new TextRun({ text: `[^${label ?? identifier}]`, ...baseStyle });
+  }
+
+  let id = context.footnoteIds.get(identifier);
+
+  if (id === undefined) {
+    id = context.footnoteIds.size + 1;
+    context.footnoteIds.set(identifier, id);
+  }
+
+  return new FootnoteReferenceRun(id);
+}
+
 async function renderHeading(node: Heading, context: RenderContext): Promise<Paragraph> {
   const level = Math.min(Math.max(node.depth, 1), 4) as 1 | 2 | 3 | 4;
   const headingMap = {
@@ -657,7 +763,7 @@ async function renderParagraph(
   );
 
   return new Paragraph({
-    style: numbering ? "ListParagraph" : "Normal",
+    style: numbering ? "ListParagraph" : context.paragraphStyle,
     alignment: hasOnlyImages ? AlignmentType.CENTER : undefined,
     numbering,
     children: await renderInline(node.children, context, {}),
@@ -737,6 +843,11 @@ async function renderInline(
 
     if (node.type === "link") {
       children.push(await renderLink(node, context, baseStyle));
+      continue;
+    }
+
+    if (node.type === "footnoteReference") {
+      children.push(renderFootnoteReference(node.identifier, node.label, context, baseStyle));
       continue;
     }
 
@@ -1178,6 +1289,10 @@ function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
           underline: { type: UnderlineType.SINGLE },
         },
       },
+      footnoteText: {
+        run: { ...bodyRun, size: toHalfPoints(Math.max(theme.fontSize.body - 2, 1)) },
+        paragraph: { spacing: { after: 0, ...singleLine } },
+      },
     },
     paragraphStyles: [
       {
@@ -1275,6 +1390,8 @@ function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
 async function patchOoxmlDefaults(
   buffer: BinaryData,
   options: ResolvedMarkdownToDocxOptions,
+  template: LoadedTemplate | undefined,
+  themeProvided: boolean,
 ): Promise<Uint8Array> {
   const zip = await JSZip.loadAsync(buffer);
 
@@ -1312,6 +1429,16 @@ async function patchOoxmlDefaults(
           '<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">',
         ),
     );
+  }
+
+  if (template && options.template) {
+    await applyTemplate(zip, template, {
+      inherit: options.template.inherit,
+      headers: options.template.headers,
+      themeOverrides: themeProvided,
+      coverShowHeader: options.cover.showHeader,
+      coverShowFooter: options.cover.showFooter,
+    });
   }
 
   if (options.deterministic) {

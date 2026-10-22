@@ -59,11 +59,13 @@ It is built for application-driven document generation:
   - [Page Options](#page-options)
   - [Theme Options](#theme-options)
   - [Asset Options](#asset-options)
+  - [Template Options](#template-options)
   - [Image Sources](#image-sources)
   - [Code Block Renderers](#code-block-renderers)
 - [Supported Markdown](#supported-markdown)
   - [Task lists](#task-lists)
   - [Math](#math)
+  - [Footnotes](#footnotes)
   - [Raw HTML](#raw-html)
 - [Behavior Notes](#behavior-notes)
 - [Example Script](#example-script)
@@ -234,6 +236,7 @@ Returns: `Promise<Buffer>` in Node and Bun, `Promise<Uint8Array>` in the browser
 | `page` | `PageOptions` | Built-in defaults | Controls page size, orientation, and margins. |
 | `theme` | `ThemeOptions` | Built-in defaults | Controls colors, fonts, spacing, and table styling. |
 | `assets` | `AssetOptions` | Built-in defaults | Controls image loading and resolution. |
+| `template` | `TemplateOptions` | `undefined` | Inherits styles and other parts from an existing DOCX template. |
 | `codeBlockRenderers` | `Record<string, CodeBlockRenderer>` | `{}` | Renders fenced code blocks with a matching language tag as images. |
 | `deterministic` | `boolean` | `false` | Pins document and zip timestamps so identical input produces byte-identical output. |
 
@@ -392,6 +395,34 @@ Use `resolveImage` when you need to:
 - fetch assets from S3 or another SDK
 - override image dimensions before embedding
 
+### Template Options
+
+Use an existing `.docx` as the style base for the generated document, for example a corporate template handed out by a brand team.
+
+```ts
+await markdownToDocx(markdown, {
+  template: {
+    source: { kind: "path", value: "./acme-template.docx" },
+    inherit: ["styles", "numbering", "theme", "settings"],
+    headers: "template",
+  },
+});
+```
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `source` | `FileSource` | Required | The template DOCX as a path, base64 string, or in-memory bytes. Relative paths resolve against `assets.baseDir`. |
+| `inherit` | `Array<"styles" \| "numbering" \| "theme" \| "settings">` | `["styles"]` | Template parts copied into the output. Requesting a part the template lacks throws a `MarkdownToDocError` naming the part. |
+| `headers` | `"template" \| "document"` | `"document"` | `template` reuses the template's headers, footers, and page setup and ignores the `header`, `footer`, and `page` options. |
+
+Precedence, from lowest to highest:
+
+1. Package defaults.
+2. Template styles. Every style the template defines wins over the package definition of the same id, so a template `Heading 1` restyles Markdown headings.
+3. Explicit `theme` options. When `theme` is passed, the package styles built from it override the template's definitions of the same ids. Styles the package does not define, such as custom corporate styles, always come from the template.
+
+Styles the template does not define (`Quote`, `Source Code`, `Code Inline`, and so on) are appended from the package so the output stays self-contained. Inherited numbering is merged with its ids shifted so package lists keep working. If `styles` are inherited without `numbering`, list references in the template styles are dropped rather than pointed at the wrong lists.
+
 ### Image Sources
 
 Images used in cover, header, and footer configuration support these source types:
@@ -437,6 +468,7 @@ The package supports the Markdown elements most commonly used in reports and tec
 | GFM tables | Yes |
 | Task lists `- [ ]` / `- [x]` | Yes |
 | Math `$...$` / `$$...$$` | Yes |
+| Footnotes `[^1]` | Yes |
 | Raw HTML | Partial (see below) |
 
 ### Task lists
@@ -452,6 +484,10 @@ list level. Checked boxes use the theme primary color.
 ### Math
 
 Inline math (`$E = mc^2$`) and display math (`$$ ... $$`) are converted from LaTeX to OMML, Word's native equation format, so equations stay selectable, searchable, and editable in the Word equation editor. Display math renders as its own centered equation paragraph. LaTeX that fails to parse is left as the original source text.
+
+### Footnotes
+
+GFM footnotes (`text[^1]` with a matching `[^1]: ...` definition) render as native Word footnotes, numbered in order of first reference and placed at the bottom of the page. Definitions can contain formatting, links, and lists. A reference without a definition is kept as its literal `[^label]` text so nothing is silently lost.
 
 ### Raw HTML
 

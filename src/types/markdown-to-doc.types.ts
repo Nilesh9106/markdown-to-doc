@@ -18,12 +18,40 @@ export interface TextStyle {
 }
 
 /**
- * A source description for images used in the cover, header, or footer.
+ * A source description for a file loaded from disk, base64, or memory.
  */
-export type ImageSource =
+export type FileSource =
   | { kind: "path"; value: string }
   | { kind: "base64"; value: string }
   | { kind: "buffer"; value: Uint8Array | ArrayBuffer };
+
+/**
+ * A source description for images used in the cover, header, or footer.
+ */
+export type ImageSource = FileSource;
+
+/**
+ * Parts of a template DOCX that can be inherited.
+ */
+export type TemplateInheritPart = "styles" | "numbering" | "theme" | "settings";
+
+/**
+ * Uses an existing DOCX as the style base for the generated document.
+ */
+export interface TemplateOptions {
+  /** The template DOCX to read. Relative paths resolve against `assets.baseDir`. */
+  source: FileSource;
+  /**
+   * Template parts to copy into the output. Defaults to `["styles"]`.
+   * Requesting a part the template does not contain throws a `MarkdownToDocError`.
+   */
+  inherit?: TemplateInheritPart[];
+  /**
+   * `template` reuses the template's headers, footers, and page setup instead
+   * of the `header`, `footer`, and `page` options. Defaults to `document`.
+   */
+  headers?: "template" | "document";
+}
 
 /**
  * Controls the optional cover page that appears before the table of contents
@@ -317,6 +345,8 @@ export interface MarkdownToDocxOptions {
   theme?: ThemeOptions;
   /** Asset resolution options, including private image hooks. */
   assets?: AssetOptions;
+  /** Optional DOCX template whose styles and parts are inherited. */
+  template?: TemplateOptions;
   /**
    * Renders fenced code blocks with a matching language tag as images, for
    * example `mermaid` diagrams. Unmatched languages render as code.
@@ -364,6 +394,7 @@ export interface ResolvedMarkdownToDocxOptions {
     tables: Required<ThemeTableOptions>;
   };
   assets: Required<AssetOptions>;
+  template?: Required<TemplateOptions>;
   codeBlockRenderers: Record<string, CodeBlockRenderer>;
   deterministic: boolean;
 }

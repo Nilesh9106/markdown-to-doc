@@ -10,6 +10,9 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 - Added math support. Inline `$...$` and display `$$...$$` LaTeX is parsed with `remark-math` and converted to OMML through `temml` and `mathml2omml`, so equations are native, editable Word equations. Invalid LaTeX falls back to the source text.
 - Added `codeBlockRenderers`, a per-language hook that renders fenced code blocks (for example `mermaid`) to an image supplied by the caller. Returning `null` falls back to the regular code block, and languages without a renderer are unaffected.
+- Added a `template` option that inherits `styles`, `numbering`, `theme`, and `settings` parts from an existing DOCX, with `headers: "template"` to reuse the template's headers, footers, and page setup. Template styles win over package defaults, explicit `theme` options win over the template, and package styles the template lacks are appended so the output stays self-contained.
+- Added footnote support. GFM `[^1]` references and definitions render as native DOCX footnotes numbered by order of first reference, styled through `FootnoteText`. References without a definition keep their literal marker text.
+- Exported `FileSource`, `TemplateOptions`, and `TemplateInheritPart` types. `ImageSource` is now an alias of `FileSource`.
 
 ### Changed
 
