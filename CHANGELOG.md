@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-22
+
 ### Added
 
 - Added math support. Inline `$...$` and display `$$...$$` LaTeX is parsed with `remark-math` and converted to OMML through `temml` and `mathml2omml`, so equations are native, editable Word equations. Invalid LaTeX falls back to the source text.

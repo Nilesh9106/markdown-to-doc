@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-doc",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Convert Markdown to DOCX (Word) documents in Node.js and Bun - styled output, tables, code highlighting, images, headers/footers, and a CLI.",
   "type": "module",
   "main": "./dist/index.cjs",
