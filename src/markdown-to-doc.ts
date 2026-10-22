@@ -153,10 +153,8 @@ async function buildSections(root: Root, context: RenderContext) {
       new Paragraph({
         text: context.options.toc.title,
         heading: HeadingLevel.HEADING_1,
-        thematicBreak: true,
         spacing: {
           before: 0,
-          after: toTwips(context.options.theme.spacing.headingAfter.h1),
         },
       }),
     );
@@ -604,7 +602,7 @@ async function renderBlocks(
     }
 
     if (node.type === "code") {
-      children.push(renderCodeBlock(node.value, node.lang, context));
+      children.push(renderCodeBlock(node.value, node.lang));
       continue;
     }
 
@@ -637,18 +635,7 @@ async function renderHeading(node: Heading, context: RenderContext): Promise<Par
 
   return new Paragraph({
     heading: headingMap[level],
-    thematicBreak: level <= 2,
-    spacing: {
-      before: toTwips(context.options.theme.spacing.headingBefore[`h${level}`]),
-      after: toTwips(context.options.theme.spacing.headingAfter[`h${level}`]),
-    },
-    children: await renderInline(node.children, context, {
-      bold: true,
-      font: context.options.theme.fonts.heading,
-      color:
-        level <= 2 ? context.options.theme.colors.primary : context.options.theme.colors.secondary,
-      size: toHalfPoints(context.options.theme.fontSize[`h${level}`]),
-    }),
+    children: await renderInline(node.children, context, {}),
   });
 }
 
@@ -662,18 +649,10 @@ async function renderParagraph(
   );
 
   return new Paragraph({
+    style: numbering ? "ListParagraph" : "Normal",
     alignment: hasOnlyImages ? AlignmentType.CENTER : undefined,
-    spacing: {
-      after: toTwips(context.options.theme.spacing.paragraphAfter),
-      line: toTwips(context.options.theme.fontSize.body * context.options.theme.spacing.lineHeight),
-      lineRule: LineRuleType.AUTO,
-    },
     numbering,
-    children: await renderInline(node.children, context, {
-      font: context.options.theme.fonts.body,
-      color: context.options.theme.colors.text,
-      size: toHalfPoints(context.options.theme.fontSize.body),
-    }),
+    children: await renderInline(node.children, context, {}),
   });
 }
 
@@ -731,7 +710,7 @@ async function renderInline(
     }
 
     if (node.type === "inlineCode") {
-      children.push(renderInlineCode(node, context));
+      children.push(renderInlineCode(node));
       continue;
     }
 
@@ -757,15 +736,10 @@ async function renderInline(
   return children;
 }
 
-function renderInlineCode(node: InlineCode, context: RenderContext): TextRun {
+function renderInlineCode(node: InlineCode): TextRun {
   return new TextRun({
     text: node.value,
-    font: context.options.theme.fonts.mono,
-    color: hex(context.options.theme.colors.text),
-    size: toHalfPoints(context.options.theme.fontSize.code),
-    shading: {
-      fill: hex(context.options.theme.colors.codeBg),
-    },
+    style: "CodeInline",
   });
 }
 
@@ -776,10 +750,7 @@ async function renderLink(
 ): Promise<ExternalHyperlink> {
   const linkChildren = await renderInline(node.children, context, {
     ...baseStyle,
-    color: hex(context.options.theme.colors.primary),
-    underline: {
-      type: UnderlineType.SINGLE,
-    },
+    style: "Hyperlink",
   });
 
   return new ExternalHyperlink({
@@ -904,7 +875,7 @@ async function renderListItem(
     }
 
     if (child.type === "code") {
-      paragraphs.push(renderCodeBlock(child.value, child.lang, context));
+      paragraphs.push(renderCodeBlock(child.value, child.lang));
       continue;
     }
 
@@ -929,29 +900,17 @@ async function renderTaskItem(
   const indent = toTwips(18 + depth * 18);
 
   return new Paragraph({
+    style: "ListParagraph",
     indent: {
       left: indent,
       hanging: toTwips(12),
     },
-    spacing: {
-      after: toTwips(context.options.theme.spacing.paragraphAfter),
-      line: toTwips(context.options.theme.fontSize.body * context.options.theme.spacing.lineHeight),
-      lineRule: LineRuleType.AUTO,
-    },
     children: [
       new TextRun({
         text: checked ? "\u2611 " : "\u2610 ",
-        font: context.options.theme.fonts.body,
-        color: checked
-          ? hex(context.options.theme.colors.primary)
-          : hex(context.options.theme.colors.text),
-        size: toHalfPoints(context.options.theme.fontSize.body),
+        color: checked ? hex(context.options.theme.colors.primary) : undefined,
       }),
-      ...(await renderInline(node.children, context, {
-        font: context.options.theme.fonts.body,
-        color: context.options.theme.colors.text,
-        size: toHalfPoints(context.options.theme.fontSize.body),
-      })),
+      ...(await renderInline(node.children, context, {})),
     ],
   });
 }
@@ -966,28 +925,8 @@ async function renderBlockquote(node: Parent, context: RenderContext): Promise<P
 
     paragraphs.push(
       new Paragraph({
-        spacing: {
-          after: toTwips(context.options.theme.spacing.paragraphAfter),
-        },
-        border: {
-          left: {
-            color: hex(context.options.theme.colors.primary),
-            style: BorderStyle.SINGLE,
-            size: 8,
-          },
-        },
-        shading: {
-          fill: hex(context.options.theme.colors.quoteBg),
-        },
-        indent: {
-          left: toTwips(12),
-        },
-        children: await renderInline(child.children, context, {
-          font: context.options.theme.fonts.body,
-          color: context.options.theme.colors.text,
-          italics: true,
-          size: toHalfPoints(context.options.theme.fontSize.body),
-        }),
+        style: "Quote",
+        children: await renderInline(child.children, context, {}),
       }),
     );
   }
@@ -995,11 +934,7 @@ async function renderBlockquote(node: Parent, context: RenderContext): Promise<P
   return paragraphs;
 }
 
-function renderCodeBlock(
-  value: string,
-  language: string | null | undefined,
-  context: RenderContext,
-): Paragraph {
+function renderCodeBlock(value: string, language: string | null | undefined): Paragraph {
   const children: ParagraphChild[] = [];
   const lines = tokenizeCodeBlock(value, language);
 
@@ -1009,8 +944,6 @@ function renderCodeBlock(
         text: language.toUpperCase(),
         bold: true,
         color: "5B6574",
-        font: context.options.theme.fonts.mono,
-        size: toHalfPoints(context.options.theme.fontSize.code),
       }),
     );
 
@@ -1032,11 +965,9 @@ function renderCodeBlock(
       children.push(
         new TextRun({
           text: token.text,
-          font: context.options.theme.fonts.mono,
-          color: token.color ?? hex(context.options.theme.colors.text),
+          color: token.color,
           bold: token.bold,
           italics: token.italics,
-          size: toHalfPoints(context.options.theme.fontSize.code),
         }),
       );
     }
@@ -1047,19 +978,7 @@ function renderCodeBlock(
   }
 
   return new Paragraph({
-    spacing: {
-      after: toTwips(context.options.theme.spacing.paragraphAfter),
-    },
-    shading: {
-      fill: hex(context.options.theme.colors.codeBg),
-    },
-    border: {
-      left: {
-        color: hex(context.options.theme.colors.border),
-        style: BorderStyle.SINGLE,
-        size: 6,
-      },
-    },
+    style: "SourceCode",
     children,
   });
 }
@@ -1130,21 +1049,14 @@ async function renderTableCell(
 ): Promise<TableCell> {
   const children: TableCellChild[] = [
     new Paragraph({
+      style: options.isHeader ? "TableHeader" : "TableCell",
       alignment:
         options.alignment === "center"
           ? AlignmentType.CENTER
           : options.alignment === "right"
             ? AlignmentType.RIGHT
             : AlignmentType.LEFT,
-      spacing: {
-        after: toTwips(2),
-      },
-      children: await renderInline(node.children, context, {
-        font: context.options.theme.fonts.body,
-        color: options.isHeader ? "FFFFFF" : context.options.theme.colors.text,
-        size: toHalfPoints(context.options.theme.fontSize.body),
-        bold: options.isHeader && context.options.theme.tables.headerBold,
-      }),
+      children: await renderInline(node.children, context, {}),
     }),
   ];
 
@@ -1163,16 +1075,42 @@ async function renderTableCell(
 
 function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
   const { theme } = options;
+  const singleLine = { line: 240, lineRule: LineRuleType.AUTO };
+  const bodyRun = {
+    font: theme.fonts.body,
+    size: toHalfPoints(theme.fontSize.body),
+    color: hex(theme.colors.text),
+  };
+  const monoRun = {
+    font: theme.fonts.mono,
+    size: toHalfPoints(theme.fontSize.code),
+    color: hex(theme.colors.text),
+    shading: { fill: hex(theme.colors.codeBg) },
+  };
+  const headingStyle = (level: 1 | 2 | 3 | 4) => ({
+    run: {
+      bold: true,
+      font: theme.fonts.heading,
+      color: hex(level <= 2 ? theme.colors.primary : theme.colors.secondary),
+      size: toHalfPoints(theme.fontSize[`h${level}`]),
+    },
+    paragraph: {
+      thematicBreak: level <= 2,
+      spacing: {
+        before: toTwips(theme.spacing.headingBefore[`h${level}`]),
+        after: toTwips(theme.spacing.headingAfter[`h${level}`]),
+        ...singleLine,
+      },
+    },
+  });
 
   return {
     default: {
-      document: {
-        run: {
-          font: theme.fonts.body,
-          size: toHalfPoints(theme.fontSize.body),
-          color: hex(theme.colors.text),
-        },
-      },
+      document: { run: bodyRun },
+      heading1: headingStyle(1),
+      heading2: headingStyle(2),
+      heading3: headingStyle(3),
+      heading4: headingStyle(4),
       listParagraph: {
         paragraph: {
           contextualSpacing: true,
@@ -1181,12 +1119,86 @@ function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
           },
         },
       },
+      hyperlink: {
+        run: {
+          color: hex(theme.colors.primary),
+          underline: { type: UnderlineType.SINGLE },
+        },
+      },
     },
     paragraphStyles: [
       {
         id: "Normal",
         name: "Normal",
         quickFormat: true,
+        run: bodyRun,
+        paragraph: {
+          spacing: {
+            after: toTwips(theme.spacing.paragraphAfter),
+            line: toTwips(theme.fontSize.body * theme.spacing.lineHeight),
+            lineRule: LineRuleType.AUTO,
+          },
+        },
+      },
+      {
+        id: "Quote",
+        name: "Quote",
+        basedOn: "Normal",
+        next: "Normal",
+        quickFormat: true,
+        run: { italics: true },
+        paragraph: {
+          spacing: { after: toTwips(theme.spacing.paragraphAfter), ...singleLine },
+          border: {
+            left: {
+              color: hex(theme.colors.primary),
+              style: BorderStyle.SINGLE,
+              size: 8,
+            },
+          },
+          shading: { fill: hex(theme.colors.quoteBg) },
+          indent: { left: toTwips(12) },
+        },
+      },
+      {
+        id: "SourceCode",
+        name: "Source Code",
+        basedOn: "Normal",
+        next: "Normal",
+        quickFormat: true,
+        run: monoRun,
+        paragraph: {
+          spacing: { after: toTwips(theme.spacing.paragraphAfter), ...singleLine },
+          border: {
+            left: {
+              color: hex(theme.colors.border),
+              style: BorderStyle.SINGLE,
+              size: 6,
+            },
+          },
+          shading: { fill: hex(theme.colors.codeBg) },
+        },
+      },
+      {
+        id: "Caption",
+        name: "Caption",
+        basedOn: "Normal",
+        next: "Normal",
+        quickFormat: true,
+        run: { italics: true, color: hex(theme.colors.muted) },
+      },
+      {
+        id: "TableHeader",
+        name: "Table Header",
+        basedOn: "Normal",
+        run: { color: "FFFFFF", bold: theme.tables.headerBold || undefined },
+        paragraph: { spacing: { after: toTwips(2), ...singleLine } },
+      },
+      {
+        id: "TableCell",
+        name: "Table Cell",
+        basedOn: "Normal",
+        paragraph: { spacing: { after: toTwips(2), ...singleLine } },
       },
     ],
     characterStyles: [
@@ -1196,6 +1208,12 @@ function createDocumentStyles(options: ResolvedMarkdownToDocxOptions) {
         uiPriority: 1,
         semiHidden: true,
         unhideWhenUsed: true,
+      },
+      {
+        id: "CodeInline",
+        name: "Code Inline",
+        basedOn: "DefaultParagraphFont",
+        run: monoRun,
       },
     ],
   };
