@@ -1,6 +1,7 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateSync } from "node:zlib";
 import { type MarkdownToDocxOptions, markdownToDocx } from "../src/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,7 +46,7 @@ function solidPng(width: number, height: number, rgb: [number, number, number]):
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),
-    chunk("IDAT", Bun.deflateSync(raw)),
+    chunk("IDAT", deflateSync(raw)),
     chunk("IEND", new Uint8Array(0)),
   ]);
 }
