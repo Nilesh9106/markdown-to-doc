@@ -471,6 +471,8 @@ The package returns the file in memory (a `Buffer` in Node and Bun, a `Uint8Arra
 
 Markdown controls the content. Configuration controls the layout and appearance.
 
+Theme options are written to `word/styles.xml` as named Word styles rather than direct formatting, so documents can be restyled in Word through the style pane. Headings use `Heading 1` to `Heading 4`, body text uses `Normal`, and the package defines `Quote`, `Source Code`, `Code Inline`, `Caption`, `Table Header`, `Table Cell`, and `Hyperlink`. Inline bold, italic, strikethrough, and syntax-highlighting colors stay as direct formatting.
+
 ## Example Script
 
 The repository includes a runnable example:

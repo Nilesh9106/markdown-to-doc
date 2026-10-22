@@ -103,7 +103,7 @@ describe("markdownToDocx", () => {
     expect(documentXml).toContain(">log<");
     expect(documentXml).toContain("&quot;ready&quot;");
     expect(documentXml).toContain("// keep me");
-    expect(documentXml).toContain('w:shd w:fill="EEF4F8"');
+    expect(documentXml).toContain('<w:pStyle w:val="SourceCode"/>');
     expect(documentXml).toContain('w:color w:val="D73A49"');
     expect(documentXml).toContain('w:color w:val="005CC5"');
     expect(documentXml).toContain('w:color w:val="032F62"');
@@ -120,7 +120,7 @@ describe("markdownToDocx", () => {
 
     expect(documentXml).toContain(">BRAINFLUX<");
     expect(documentXml).toContain("spark -&gt; pulse -&gt; sink");
-    expect(documentXml).toContain('w:shd w:fill="EEF4F8"');
+    expect(documentXml).toContain('<w:pStyle w:val="SourceCode"/>');
     expect(documentXml).not.toContain('w:color w:val="1D4ED8"');
     expect(documentXml).not.toContain('w:color w:val="0F766E"');
     expect(documentXml).not.toContain('w:color w:val="B45309"');
