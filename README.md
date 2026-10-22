@@ -60,8 +60,10 @@ It is built for application-driven document generation:
   - [Theme Options](#theme-options)
   - [Asset Options](#asset-options)
   - [Image Sources](#image-sources)
+  - [Code Block Renderers](#code-block-renderers)
 - [Supported Markdown](#supported-markdown)
   - [Task lists](#task-lists)
+  - [Math](#math)
   - [Raw HTML](#raw-html)
 - [Behavior Notes](#behavior-notes)
 - [Example Script](#example-script)
@@ -160,7 +162,7 @@ Example:
 }
 ```
 
-CLI config supports JSON-serializable options only. Function-based options such as `assets.resolveImage` remain library-only.
+CLI config supports JSON-serializable options only. Function-based options such as `assets.resolveImage` and `codeBlockRenderers` remain library-only.
 
 ### CLI Notes
 
@@ -232,6 +234,7 @@ Returns: `Promise<Buffer>` in Node and Bun, `Promise<Uint8Array>` in the browser
 | `page` | `PageOptions` | Built-in defaults | Controls page size, orientation, and margins. |
 | `theme` | `ThemeOptions` | Built-in defaults | Controls colors, fonts, spacing, and table styling. |
 | `assets` | `AssetOptions` | Built-in defaults | Controls image loading and resolution. |
+| `codeBlockRenderers` | `Record<string, CodeBlockRenderer>` | `{}` | Renders fenced code blocks with a matching language tag as images. |
 | `deterministic` | `boolean` | `false` | Pins document and zip timestamps so identical input produces byte-identical output. |
 
 ### Cover Options
@@ -399,6 +402,20 @@ Images used in cover, header, and footer configuration support these source type
 | `base64` | `{ kind: "base64"; value: string }` | Uses a base64-encoded image string. |
 | `buffer` | `{ kind: "buffer"; value: Uint8Array \| ArrayBuffer }` | Uses in-memory image bytes, including a Node `Buffer`. |
 
+### Code Block Renderers
+
+Diagram sources such as Mermaid, PlantUML, or Graphviz are not rendered by the package. Instead, register a renderer per fence language and return an image:
+
+```ts
+await markdownToDocx(markdown, {
+  codeBlockRenderers: {
+    mermaid: async ({ code }) => ({ data: pngBuffer, width: 640, height: 360 }),
+  },
+});
+```
+
+The renderer receives `{ code, lang }` and may return a `ResolvedImage`, raw `Uint8Array` or `ArrayBuffer` bytes, or `null` to fall back to the syntax-highlighted code block. Returned images are centered and scaled to the content width. Languages without a renderer are unaffected.
+
 ## Supported Markdown
 
 The package supports the Markdown elements most commonly used in reports and technical documents.
@@ -419,6 +436,7 @@ The package supports the Markdown elements most commonly used in reports and tec
 | Horizontal rules | Yes |
 | GFM tables | Yes |
 | Task lists `- [ ]` / `- [x]` | Yes |
+| Math `$...$` / `$$...$$` | Yes |
 | Raw HTML | Partial (see below) |
 
 ### Task lists
@@ -430,6 +448,10 @@ list level. Checked boxes use the theme primary color.
 - [x] Ship the release
 - [ ] Write the changelog
 ```
+
+### Math
+
+Inline math (`$E = mc^2$`) and display math (`$$ ... $$`) are converted from LaTeX to OMML, Word's native equation format, so equations stay selectable, searchable, and editable in the Word equation editor. Display math renders as its own centered equation paragraph. LaTeX that fails to parse is left as the original source text.
 
 ### Raw HTML
 

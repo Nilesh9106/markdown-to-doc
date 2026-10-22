@@ -9,6 +9,7 @@ import {
   Header,
   HeadingLevel,
   ImageRun,
+  ImportedXmlComponent,
   type IRunOptions,
   LevelFormat,
   LineRuleType,
@@ -58,11 +59,13 @@ import { resolveOptions } from "./utils/default-options.js";
 import { expandBlockHtml, expandInlineHtml, type UnderlineNode } from "./utils/html.js";
 import {
   type LocalImageReader,
+  resolveCallbackImage,
   type SizedImage,
   tryResolveConfiguredImage,
   tryResolveMarkdownImage,
 } from "./utils/image.js";
 import { extractText, parseMarkdown } from "./utils/markdown.js";
+import { latexToOmml } from "./utils/math.js";
 
 type SectionChild = Paragraph | Table | TableOfContents;
 type TableCellChild = Paragraph | Table;
@@ -602,7 +605,12 @@ async function renderBlocks(
     }
 
     if (node.type === "code") {
-      children.push(renderCodeBlock(node.value, node.lang));
+      children.push(await renderCode(node.value, node.lang, context));
+      continue;
+    }
+
+    if (node.type === "math") {
+      children.push(renderMathBlock(node.value));
       continue;
     }
 
@@ -716,6 +724,14 @@ async function renderInline(
 
     if (node.type === "break") {
       children.push(new TextRun({ break: 1 }));
+      continue;
+    }
+
+    if (node.type === "inlineMath") {
+      const omml = latexToOmml(node.value, false);
+      children.push(
+        omml ? toParagraphChild(omml) : new TextRun({ text: `$${node.value}$`, ...baseStyle }),
+      );
       continue;
     }
 
@@ -875,7 +891,7 @@ async function renderListItem(
     }
 
     if (child.type === "code") {
-      paragraphs.push(renderCodeBlock(child.value, child.lang));
+      paragraphs.push(await renderCode(child.value, child.lang, context));
       continue;
     }
 
@@ -932,6 +948,43 @@ async function renderBlockquote(node: Parent, context: RenderContext): Promise<P
   }
 
   return paragraphs;
+}
+
+function renderMathBlock(value: string): Paragraph {
+  const omml = latexToOmml(value, true);
+
+  return new Paragraph({
+    style: "Normal",
+    children: [omml ? toParagraphChild(omml) : new TextRun({ text: `$$${value}$$` })],
+  });
+}
+
+function toParagraphChild(xml: string): ParagraphChild {
+  const imported = ImportedXmlComponent.fromXmlString(xml) as unknown as { root: ParagraphChild[] };
+
+  return imported.root[0] as ParagraphChild;
+}
+
+async function renderCode(
+  value: string,
+  language: string | null | undefined,
+  context: RenderContext,
+): Promise<Paragraph> {
+  const renderer = language ? context.options.codeBlockRenderers[language] : undefined;
+  const rendered = renderer ? await renderer({ code: value, lang: language as string }) : null;
+
+  if (!rendered) {
+    return renderCodeBlock(value, language);
+  }
+
+  const image = resolveCallbackImage(rendered);
+  const maxWidth = Math.min(context.contentWidthPx, 520);
+
+  return new Paragraph({
+    style: "Normal",
+    alignment: AlignmentType.CENTER,
+    children: [createImageRun(image, scaleToFit(image.width, image.height, maxWidth))],
+  });
 }
 
 function renderCodeBlock(value: string, language: string | null | undefined): Paragraph {

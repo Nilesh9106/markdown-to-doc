@@ -282,6 +282,24 @@ export interface AssetOptions {
 }
 
 /**
+ * Information passed to a code block renderer.
+ */
+export interface CodeBlockRendererInput {
+  /** Fenced code block content without the fence. */
+  code: string;
+  /** Fence language tag, for example `mermaid`. */
+  lang: string;
+}
+
+/**
+ * Renders a fenced code block to an image. Return `null` or `undefined` to
+ * fall back to the default syntax-highlighted code block.
+ */
+export type CodeBlockRenderer = (
+  input: CodeBlockRendererInput,
+) => Promise<ResolvedImage | Uint8Array | ArrayBuffer | null | undefined>;
+
+/**
  * Full configuration object accepted by {@link markdownToDocx}.
  */
 export interface MarkdownToDocxOptions {
@@ -299,6 +317,11 @@ export interface MarkdownToDocxOptions {
   theme?: ThemeOptions;
   /** Asset resolution options, including private image hooks. */
   assets?: AssetOptions;
+  /**
+   * Renders fenced code blocks with a matching language tag as images, for
+   * example `mermaid` diagrams. Unmatched languages render as code.
+   */
+  codeBlockRenderers?: Record<string, CodeBlockRenderer>;
   /**
    * Produces byte-identical output for identical input by pinning document
    * and zip entry timestamps to a fixed epoch. Defaults to `false`.
@@ -341,6 +364,7 @@ export interface ResolvedMarkdownToDocxOptions {
     tables: Required<ThemeTableOptions>;
   };
   assets: Required<AssetOptions>;
+  codeBlockRenderers: Record<string, CodeBlockRenderer>;
   deterministic: boolean;
 }
 
