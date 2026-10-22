@@ -6,6 +6,10 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+### Changed
+
+- Theme values are now written to `word/styles.xml` as named Word styles (`Heading 1`-`Heading 4`, `Normal`, `List Paragraph`, `Quote`, `Source Code`, `Code Inline`, `Caption`, `Table Header`, `Table Cell`, `Hyperlink`) and referenced from the body instead of being applied as direct formatting. Visual output for a given theme is unchanged, but documents can now be restyled in Word through the style pane. Inline bold, italic, strikethrough, underline, and syntax-highlighting colors remain direct formatting.
+
 ## [1.2.0] - 2026-10-17
 
 ### Added
