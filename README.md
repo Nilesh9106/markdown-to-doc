@@ -539,7 +539,7 @@ The repository includes a runnable example:
 bun run example
 ```
 
-That script reads `examples/example.md`, embeds `examples/logo.svg`, skips the intentionally missing image entry, and writes `examples/test-output.docx`.
+That script reads `examples/showcase.md`, which exercises every supported Markdown construct (formatting, lists, task lists, quotes, code, Mermaid via `codeBlockRenderers`, math, tables, images, footnotes, raw HTML), and writes `examples/showcase.docx` with a cover page, table of contents, header, footer, theme, and page setup configured. Drop a `examples/template.docx` next to it to see template inheritance.
 
 ## Errors
 
