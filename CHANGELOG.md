@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+### Added
+
+- Added math support. Inline `$...$` and display `$$...$$` LaTeX is parsed with `remark-math` and converted to OMML through `temml` and `mathml2omml`, so equations are native, editable Word equations. Invalid LaTeX falls back to the source text.
+- Added `codeBlockRenderers`, a per-language hook that renders fenced code blocks (for example `mermaid`) to an image supplied by the caller. Returning `null` falls back to the regular code block, and languages without a renderer are unaffected.
+
 ### Changed
 
 - Theme values are now written to `word/styles.xml` as named Word styles (`Heading 1`-`Heading 4`, `Normal`, `List Paragraph`, `Quote`, `Source Code`, `Code Inline`, `Caption`, `Table Header`, `Table Cell`, `Hyperlink`) and referenced from the body instead of being applied as direct formatting. Visual output for a given theme is unchanged, but documents can now be restyled in Word through the style pane. Inline bold, italic, strikethrough, underline, and syntax-highlighting colors remain direct formatting.

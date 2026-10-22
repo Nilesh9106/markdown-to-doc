@@ -106,6 +106,7 @@ const defaultOptions: ResolvedMarkdownToDocxOptions = {
     resolveImage: async () => undefined,
     fetchRemoteImages: true,
   },
+  codeBlockRenderers: {},
   deterministic: false,
 };
 
@@ -182,6 +183,7 @@ export function resolveOptions(
       baseDir: defaultBaseDir,
       ...options.assets,
     },
+    codeBlockRenderers: options.codeBlockRenderers ?? defaultOptions.codeBlockRenderers,
     deterministic: options.deterministic ?? defaultOptions.deterministic,
   };
 }

@@ -1,6 +1,6 @@
 import { imageSize } from "image-size";
 import { MarkdownToDocError } from "../errors/MarkdownToDocError.js";
-import type { AssetOptions, ImageSource } from "../types/markdown-to-doc.types.js";
+import type { AssetOptions, ImageSource, ResolvedImage } from "../types/markdown-to-doc.types.js";
 import { base64ToBytes, isBinaryData, toBytes } from "./bytes.js";
 
 const DATA_URL_PATTERN = /^data:(?<mime>image\/[a-zA-Z0-9.+-]+);base64,(?<data>.+)$/;
@@ -75,12 +75,8 @@ export async function resolveMarkdownImage(
 ): Promise<SizedImage> {
   const resolvedByUser = await assets.resolveImage(input);
 
-  if (isBinaryData(resolvedByUser)) {
-    return withMeasuredSize({ data: toBytes(resolvedByUser) });
-  }
-
   if (resolvedByUser) {
-    return withMeasuredSize({ ...resolvedByUser, data: toBytes(resolvedByUser.data) });
+    return resolveCallbackImage(resolvedByUser);
   }
 
   if (DATA_URL_PATTERN.test(input.src)) {
@@ -130,6 +126,17 @@ export async function tryResolveMarkdownImage(
   } catch {
     return null;
   }
+}
+
+/**
+ * Normalizes an image returned from a user callback into a sized image.
+ */
+export function resolveCallbackImage(result: ResolvedImage | Uint8Array | ArrayBuffer): SizedImage {
+  if (isBinaryData(result)) {
+    return withMeasuredSize({ data: toBytes(result) });
+  }
+
+  return withMeasuredSize({ ...result, data: toBytes(result.data) });
 }
 
 function withMeasuredSize(image: MeasurableImage): SizedImage {

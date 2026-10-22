@@ -5,12 +5,10 @@ import { unified } from "unified";
  * Parses markdown into an MDAST tree with GFM support enabled.
  */
 export async function parseMarkdown(markdown: string): Promise<Root> {
-  const [{ default: remarkParse }, { default: remarkGfm }] = await Promise.all([
-    import("remark-parse"),
-    import("remark-gfm"),
-  ]);
+  const [{ default: remarkParse }, { default: remarkGfm }, { default: remarkMath }] =
+    await Promise.all([import("remark-parse"), import("remark-gfm"), import("remark-math")]);
 
-  return unified().use(remarkParse).use(remarkGfm).parse(markdown) as Root;
+  return unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(markdown) as Root;
 }
 
 /**

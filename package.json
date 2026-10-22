@@ -25,8 +25,11 @@
     "image-size": "^2.0.2",
     "jszip": "^3.10.1",
     "lowlight": "^3.3.0",
+    "mathml2omml": "^0.5.0",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
+    "temml": "^0.14.0",
     "unified": "^11.0.5"
   },
   "exports": {
