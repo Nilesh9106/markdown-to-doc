@@ -8,10 +8,50 @@ const __dirname = path.dirname(__filename);
 const inputPath = path.join(__dirname, "showcase.md");
 const outputPath = path.join(__dirname, "showcase.docx");
 const templatePath = path.join(__dirname, "template.docx");
-const tinyPng = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9l8AAAAASUVORK5CYII=",
-  "base64",
-);
+/**
+ * Builds a solid-color PNG so placeholder images are visible in the output.
+ */
+function solidPng(width: number, height: number, rgb: [number, number, number]): Buffer {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc32 = (bytes: Uint8Array) =>
+    (bytes.reduce((c, b) => (crcTable[(c ^ b) & 0xff] as number) ^ (c >>> 8), 0xffffffff) ^
+      0xffffffff) >>>
+    0;
+  const chunk = (type: string, data: Uint8Array) => {
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([length, body, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // RGB
+  const raw = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    const row = y * (width * 3 + 1);
+    for (let x = 0; x < width; x++) {
+      const edge = x < 2 || y < 2 || x >= width - 2 || y >= height - 2;
+      raw.set(edge ? [0x3d, 0x7a, 0x8e] : rgb, row + 1 + x * 3);
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", Bun.deflateSync(raw)),
+    chunk("IEND", new Uint8Array(0)),
+  ]);
+}
+
+const diagramPlaceholder = solidPng(480, 240, [0xee, 0xf5, 0xf7]);
+const badgePlaceholder = solidPng(120, 40, [0xc5, 0xd8, 0xde]);
 
 const markdown = await readFile(inputPath, "utf8");
 
@@ -138,7 +178,7 @@ const buffer = await markdownToDocx(markdown, {
     // Remote images are replaced with a placeholder so the example runs offline.
     resolveImage: async ({ src }) => {
       if (src.startsWith("http://") || src.startsWith("https://")) {
-        return { data: tinyPng, width: 120, height: 40 };
+        return { data: badgePlaceholder, width: 120, height: 40 };
       }
 
       return null;
@@ -150,7 +190,7 @@ const buffer = await markdownToDocx(markdown, {
       console.log(
         `Rendering mermaid diagram (${code.split("\n").length} lines) with a placeholder.`,
       );
-      return { data: tinyPng, width: 480, height: 240 };
+      return { data: diagramPlaceholder, width: 480, height: 240 };
     },
   },
   template,
